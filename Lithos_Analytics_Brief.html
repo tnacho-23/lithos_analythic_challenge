@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lithos Analytics - Prueba Técnica Granulometría</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Roboto:wght@300;400;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Chosen Palette: Industrial Dark (Slate, Amber, Cyan) -->
+    <!-- Application Structure Plan: Linear narrative briefing designed for a Senior CV role. Added IntersectionObserver for scroll-triggered reveal animations. Tailwind extended with custom keyframes for floating elements and pulsing glows to enhance the modern industrial aesthetic without external heavy libraries. -->
+    <!-- Visualization & Content Choices: Data/Resources -> Goal: Inform -> Viz: Styled HTML Cards + hover-lift -> Justification: Interactive feedback. Modules -> Goal: Organize -> Viz: Numbered Grid + Reveal -> Justification: Guides the eye sequentially as the user scrolls. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #0f172a;
+            color: #e2e8f0;
+            overflow-x: hidden;
+        }
+        h1, h2, h3, .mono-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        
+        /* Custom CSS for Animations & Interactions */
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
+        }
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .hover-lift {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .hover-lift:hover {
+            transform: translateY(-6px);
+        }
+        
+        .border-glow-amber {
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        .border-glow-cyan {
+            box-shadow: 0 0 15px rgba(34, 211, 238, 0.15);
+            border: 1px solid rgba(34, 211, 238, 0.3);
+        }
+        .step-line::after {
+            content: '⬇';
+            display: block;
+            font-size: 2rem;
+            color: #475569;
+            margin: 1rem 0;
+            text-align: center;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        ind: {
+                            bg: '#0f172a',
+                            card: '#1e293b',
+                            amber: '#f59e0b',
+                            cyan: '#22d3ee',
+                            gray: '#94a3b8'
+                        }
+                    },
+                    animation: {
+                        'float': 'float 4s ease-in-out infinite',
+                        'float-fast': 'float 2.5s ease-in-out infinite',
+                        'pulse-glow-amber': 'pulseGlowAmber 3s infinite',
+                        'pulse-glow-cyan': 'pulseGlowCyan 3s infinite',
+                        'fade-in-up': 'fadeInUp 1s ease-out forwards'
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-15px)' },
+                        },
+                        pulseGlowAmber: {
+                            '0%, 100%': { boxShadow: '0 0 15px rgba(245, 158, 11, 0.15)', borderColor: 'rgba(245, 158, 11, 0.3)' },
+                            '50%': { boxShadow: '0 0 30px rgba(245, 158, 11, 0.4)', borderColor: 'rgba(245, 158, 11, 0.6)' },
+                        },
+                        pulseGlowCyan: {
+                            '0%, 100%': { boxShadow: '0 0 15px rgba(34, 211, 238, 0.15)', borderColor: 'rgba(34, 211, 238, 0.3)' },
+                            '50%': { boxShadow: '0 0 30px rgba(34, 211, 238, 0.4)', borderColor: 'rgba(34, 211, 238, 0.6)' },
+                        },
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="antialiased selection:bg-ind-amber selection:text-white relative">
+
+    <!-- Ambient background glow -->
+    <div class="fixed top-0 left-1/4 w-96 h-96 bg-ind-amber rounded-full mix-blend-multiply filter blur-[128px] opacity-10 pointer-events-none animate-float"></div>
+    <div class="fixed bottom-0 right-1/4 w-96 h-96 bg-ind-cyan rounded-full mix-blend-multiply filter blur-[128px] opacity-10 pointer-events-none animate-float" style="animation-delay: 2s;"></div>
+
+    <header class="relative w-full py-20 px-4 text-center bg-gradient-to-b from-slate-950 to-ind-bg border-b border-ind-amber/20 overflow-hidden">
+        <div class="max-w-5xl mx-auto z-10 relative animate-fade-in-up">
+            <h1 class="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-ind-amber to-yellow-200 mb-4 tracking-tight uppercase">
+                Lithos Analytics
+            </h1>
+            <p class="text-xl md:text-2xl text-ind-cyan font-light tracking-widest mb-6 uppercase">
+                Prueba Técnica: CV Engineer Senior
+            </p>
+            <p class="text-ind-gray max-w-3xl mx-auto text-lg leading-relaxed">
+                Diseña, evalúa y despliega un Pipeline de Visión Artificial de alto rendimiento para el análisis granulométrico de rocas en entornos industriales críticos. Precisión, optimización y MLOps estricto son el estándar.
+            </p>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto p-4 md:p-8 space-y-20 relative z-10">
+
+        <section class="bg-ind-card rounded-xl p-8 animate-pulse-glow-amber relative overflow-hidden reveal hover-lift">
+            <div class="absolute -top-4 -right-4 text-9xl opacity-5 select-none animate-float">🪨</div>
+            <h2 class="text-2xl font-bold text-white mb-4 flex items-center">
+                <span class="text-ind-amber mr-3 text-3xl">🗂️</span> Datos de Entrada (ZIP Adjunto)
+            </h2>
+            <p class="text-ind-gray mb-6">
+                En el archivo comprimido entregado encontrarás las imágenes necesarias para desarrollar y validar tus algoritmos. Estas simulan el entorno operativo real de las tolvas y cintas transportadoras.
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-slate-900 border border-slate-700 p-6 rounded-lg flex items-start transition-colors duration-300 hover:border-ind-cyan">
+                    <span class="text-4xl mr-4 group-hover:animate-bounce">📁</span>
+                    <div>
+                        <h3 class="font-bold text-ind-cyan mono-font text-lg">/Train</h3>
+                        <p class="text-sm text-ind-gray mt-2">Set de imágenes para la exploración, desarrollo, ajuste de heurísticas o entrenamiento de modelos de segmentación.</p>
+                    </div>
+                </div>
+                <div class="bg-slate-900 border border-slate-700 p-6 rounded-lg flex items-start transition-colors duration-300 hover:border-ind-cyan">
+                    <span class="text-4xl mr-4 group-hover:animate-bounce">📁</span>
+                    <div>
+                        <h3 class="font-bold text-ind-cyan mono-font text-lg">/valid</h3>
+                        <p class="text-sm text-ind-gray mt-2">Set de validación para medir la generalización de tus métodos antes del empaquetado final en Docker.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-6 bg-slate-950 p-4 rounded border-l-4 border-red-500 text-sm text-ind-gray">
+                <strong class="text-white">Atención:</strong> La evaluación final se ejecutará con tu contenedor Docker apuntando a un directorio de testing completamente oculto. Tu solución no debe sobreajustarse a estos sets.
+            </div>
+        </section>
+
+        <section>
+            <h2 class="text-3xl font-bold text-center text-white mb-2 reveal">Arquitectura del Desafío</h2>
+            <p class="text-center text-ind-gray mb-10 max-w-2xl mx-auto reveal">La prueba se estructura en tres módulos de complejidad progresiva. El enfoque metodológico es tan importante como el código final.</p>
+            
+            <div class="flex flex-col items-center">
+                
+                <div class="bg-ind-card rounded-xl p-8 w-full shadow-lg border-l-4 border-ind-amber reveal hover-lift">
+                    <div class="md:flex justify-between items-center mb-6">
+                        <div>
+                            <h3 class="text-2xl font-bold text-white"><span class="bg-ind-amber text-slate-900 rounded px-2 py-1 mr-3 mono-font text-sm">MOD 1</span>Benchmarking de Métodos</h3>
+                            <p class="text-ind-gray mt-2 text-sm">Investigación aplicada y toma de decisiones.</p>
+                        </div>
+                        <div class="text-5xl hidden md:block mt-4 md:mt-0 opacity-80 animate-float-fast">🔬</div>
+                    </div>
+                    <p class="text-ind-gray text-sm mb-6">
+                        Implementa y evalúa al menos <strong>tres (3) métodos distintos</strong> para segmentar rocas y calcular granulometría (ej. heurísticas clásicas, DL entrenado desde cero, modelos fundacionales).
+                    </p>
+                    <div class="bg-slate-900 rounded-lg p-4 border border-slate-700">
+                        <h4 class="text-white font-bold mb-2 text-sm">Entregable Requerido:</h4>
+                        <p class="text-sm text-ind-gray">Un reporte (Markdown o PDF) justificando métricas, hiperparámetros y analizando el <em>trade-off</em> (precisión vs costo computacional) de los métodos.</p>
+                    </div>
+                </div>
+
+                <div class="step-line w-full animate-pulse reveal"></div>
+
+                <div class="bg-ind-card rounded-xl p-8 w-full shadow-lg border-l-4 border-ind-cyan reveal hover-lift">
+                    <div class="md:flex justify-between items-center mb-6">
+                        <div>
+                            <h3 class="text-2xl font-bold text-white"><span class="bg-ind-cyan text-slate-900 rounded px-2 py-1 mr-3 mono-font text-sm">MOD 2</span>Pipeline & Artefactos</h3>
+                            <p class="text-ind-gray mt-2 text-sm">Automatización de métricas industriales.</p>
+                        </div>
+                        <div class="text-5xl hidden md:block mt-4 md:mt-0 opacity-80 animate-float">⚙️</div>
+                    </div>
+                    <p class="text-ind-gray text-sm mb-6">
+                        El sistema debe iterar sobre una carpeta de entrada y generar automáticamente una carpeta de salida con los artefactos técnicos requeridos para cada imagen procesada.
+                    </p>
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
+                        <div class="bg-slate-900 p-3 rounded border border-slate-700 transition-colors hover:border-ind-cyan hover:bg-slate-800"><div class="text-2xl mb-1">🖼️</div><div class="text-xs font-bold text-ind-gray">Mask Overlay</div></div>
+                        <div class="bg-slate-900 p-3 rounded border border-slate-700 transition-colors hover:border-ind-cyan hover:bg-slate-800"><div class="text-2xl mb-1">📈</div><div class="text-xs font-bold text-ind-gray">Curva D20/50/80</div></div>
+                        <div class="bg-slate-900 p-3 rounded border border-slate-700 transition-colors hover:border-ind-cyan hover:bg-slate-800"><div class="text-2xl mb-1">📊</div><div class="text-xs font-bold text-ind-gray">Histograma</div></div>
+                        <div class="bg-slate-900 p-3 rounded border border-slate-700 transition-colors hover:border-ind-cyan hover:bg-slate-800"><div class="text-2xl mb-1">📄</div><div class="text-xs font-bold text-ind-gray">CSVs Crudos</div></div>
+                        <div class="bg-slate-900 p-3 rounded border border-slate-700 transition-colors hover:border-ind-cyan hover:bg-slate-800 col-span-2 md:col-span-1"><div class="text-2xl mb-1">⏱️</div><div class="text-xs font-bold text-ind-gray">Metadatos (JSON)</div></div>
+                    </div>
+                </div>
+
+                <div class="step-line w-full animate-pulse reveal"></div>
+
+                <div class="bg-ind-card rounded-xl p-8 w-full shadow-lg border-l-4 border-emerald-500 reveal hover-lift">
+                    <div class="md:flex justify-between items-center mb-6">
+                        <div>
+                            <h3 class="text-2xl font-bold text-white"><span class="bg-emerald-500 text-slate-900 rounded px-2 py-1 mr-3 mono-font text-sm">MOD 3</span>MLOps & Despliegue</h3>
+                            <p class="text-ind-gray mt-2 text-sm">Empaquetado estricto para producción.</p>
+                        </div>
+                        <div class="text-5xl hidden md:block mt-4 md:mt-0 opacity-80 animate-float-fast">🐳</div>
+                    </div>
+                    <p class="text-ind-gray text-sm mb-4">
+                        El código debe estar dockerizado y funcionar "Out-of-the-box" sin requerir descargas de pesos manuales o ajustes de dependencias. Debe soportar argumentos CLI para rutas y selección del método a usar.
+                    </p>
+                    <div class="bg-slate-950 p-4 rounded border border-slate-800 mono-font text-xs md:text-sm text-ind-cyan overflow-x-auto whitespace-nowrap hover:border-ind-cyan transition-colors">
+                        > docker run -v /local/input:/app/input -v /local/output:/app/output \<br>
+                        &nbsp;&nbsp;tu_imagen_docker python main.py --input /app/input --output /app/output --method 2
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="bg-ind-card rounded-xl p-6 border-glow-cyan flex flex-col justify-between reveal hover-lift">
+                <div>
+                    <h2 class="text-xl font-bold text-white mb-2">Visión del Benchmark (Ejemplo)</h2>
+                    <p class="text-sm text-ind-gray mb-6">
+                        Esperamos que tu reporte de benchmarking analice el balance entre la velocidad de inferencia (FPS) y la precisión de la segmentación. El siguiente gráfico ilustra conceptualmente este análisis comparativo.
+                    </p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="benchmarkChart"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-ind-card rounded-xl p-6 animate-pulse-glow-amber flex flex-col justify-between reveal hover-lift">
+                <div>
+                    <h2 class="text-xl font-bold text-white mb-2">Ponderación de la Evaluación</h2>
+                    <p class="text-sm text-ind-gray mb-6">
+                        Evaluamos rigurosamente cada pilar del desarrollo Senior. Fallar en la contenerización o entregar código espagueti impactará fuertemente tu calificación.
+                    </p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="evaluationChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-slate-900 rounded-xl p-6 border border-slate-700 text-sm reveal hover-lift">
+            <h3 class="font-bold text-white mb-4 flex items-center"><span class="text-ind-cyan mr-2 text-xl">🛡️</span> Reglas del Juego & Consejos de Optimización</h3>
+            <ul class="space-y-3 text-ind-gray list-none">
+                <li class="flex items-start transition-transform hover:translate-x-2 duration-300"><span class="text-emerald-500 mr-2">✔</span> <strong>Uso de IA y Datos Públicos:</strong> Totalmente permitido (Copilot, ChatGPT, Datasets externos para Fine-Tuning). Evaluamos tu integración y arquitectura, no tu memoria de sintaxis.</li>
+                <li class="flex items-start transition-transform hover:translate-x-2 duration-300"><span class="text-emerald-500 mr-2">✔</span> <strong>Optimización Senior:</strong> Se otorgará alta valoración al uso de herramientas como TensorRT, ONNX Runtime o estrategias de cuantización para Edge.</li>
+                <li class="flex items-start transition-transform hover:translate-x-2 duration-300"><span class="text-emerald-500 mr-2">✔</span> <strong>Código Limpio:</strong> Aplica tipado estático (Typing en Python), docstrings, manejo de excepciones y principios SOLID.</li>
+                <li class="flex items-start transition-transform hover:translate-x-2 duration-300"><span class="text-red-400 mr-2">✘</span> <strong>Cero Dashboards:</strong> No pierdas tiempo creando interfaces web (Flask/Streamlit) para los resultados. Centra tu esfuerzo en el backend computacional y la calidad del código.</li>
+            </ul>
+        </section>
+
+    </main>
+
+    <footer class="text-center py-10 text-ind-gray text-sm border-t border-slate-800 mt-10 reveal">
+        <p class="font-bold text-white mono-font uppercase tracking-widest">Deliryum.AI - Engineering</p>
+        <p class="mt-2">Esperamos ver tu mejor nivel técnico. ¡Éxito en el desafío!</p>
+    </footer>
+
+    <script>
+        // Intersection Observer for scroll animations
+        document.addEventListener('DOMContentLoaded', () => {
+            const reveals = document.querySelectorAll('.reveal');
+            
+            const revealObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('active');
+                        // Optional: observer.unobserve(entry.target); // Unobserve if you only want it to animate once
+                    }
+                });
+            }, {
+                root: null,
+                threshold: 0.15, // Trigger when 15% of the element is visible
+                rootMargin: "0px"
+            });
+
+            reveals.forEach(reveal => {
+                revealObserver.observe(reveal);
+            });
+        });
+
+        // Chart.js configurations
+        Chart.defaults.color = '#94a3b8';
+        Chart.defaults.font.family = "'Roboto', sans-serif";
+
+        const tooltipCallback = {
+            callbacks: {
+                title: function(tooltipItems) {
+                    const item = tooltipItems[0];
+                    let label = item.chart.data.labels[item.dataIndex];
+                    if (Array.isArray(label)) {
+                        return label.join(' ');
+                    } else {
+                        return label;
+                    }
+                }
+            }
+        };
+
+        const ctxBenchmark = document.getElementById('benchmarkChart').getContext('2d');
+        new Chart(ctxBenchmark, {
+            type: 'scatter',
+            data: {
+                datasets: [
+                    {
+                        label: 'Método Clásico (Ej. Watershed)',
+                        data: [{x: 85, y: 55, r: 10}],
+                        backgroundColor: '#f59e0b',
+                        borderColor: '#f59e0b',
+                        hoverRadius: 15
+                    },
+                    {
+                        label: 'Modelo DL Heavy (Ej. MaskRCNN)',
+                        data: [{x: 12, y: 92, r: 10}],
+                        backgroundColor: '#a855f7',
+                        borderColor: '#a855f7',
+                        hoverRadius: 15
+                    },
+                    {
+                        label: 'Modelo DL Edge (Ej. YOLOv8 TensorRT)',
+                        data: [{x: 65, y: 88, r: 10}],
+                        backgroundColor: '#22d3ee',
+                        borderColor: '#22d3ee',
+                        hoverRadius: 15
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 2000,
+                    easing: 'easeOutQuart'
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Velocidad de Inferencia (FPS Teórico)', color: '#e2e8f0' },
+                        grid: { color: '#334155' }
+                    },
+                    y: {
+                        title: { display: true, text: 'Precisión Estimada (IoU %)', color: '#e2e8f0' },
+                        grid: { color: '#334155' },
+                        min: 40, max: 100
+                    }
+                },
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#e2e8f0', usePointStyle: true, padding: 20 } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                return ctx.dataset.label + ': FPS ' + ctx.parsed.x + ', IoU ' + ctx.parsed.y + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        const ctxEval = document.getElementById('evaluationChart').getContext('2d');
+        new Chart(ctxEval, {
+            type: 'doughnut',
+            data: {
+                labels: [
+                    'Precisión & Performance Visual',
+                    'Arquitectura & Calidad Código',
+                    'Rigor Benchmark & Algoritmos',
+                    'Robustez MLOps & Docker'
+                ],
+                datasets: [{
+                    data: [30, 25, 25, 20],
+                    backgroundColor: [
+                        '#22d3ee',
+                        '#a855f7',
+                        '#f59e0b',
+                        '#10b981'
+                    ],
+                    borderWidth: 0,
+                    hoverOffset: 15
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                animation: {
+                    animateScale: true,
+                    animateRotate: true,
+                    duration: 2000,
+                    easing: 'easeOutQuart'
+                },
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: { color: '#e2e8f0', boxWidth: 15, padding: 15, usePointStyle: true }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                let label = ctx.label || '';
+                                if (label) { label += ': '; }
+                                label += ctx.parsed + '%';
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
