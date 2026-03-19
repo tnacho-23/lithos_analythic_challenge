@@ -3,17 +3,17 @@ import shutil
 from ultralytics import YOLO
 
 def train_lithos_yolo():
-    model = YOLO("yolov8n-seg.pt") 
+    model = YOLO("/home/lithos_analithics_challenge/weights/yolo_approach/yolov8n-seg.pt") 
 
     project_name = "proyectos_lithos"
-    experiment_name = "segmentacion_rocas_v1"
+    experiment_name = "segmentacion_rocas_v2"
 
     # 3. Entrenar
     results = model.train(
-        data="/home/lithos_analithics_challenge/images/rocks_2/data.yaml", 
-        epochs=50, 
+        data="/home/lithos_analithics_challenge/images/full_dataset/data.yaml", 
+        epochs=10, 
         imgsz=640, 
-        batch=16,
+        batch=32,
         device=0,
         project=project_name, 
         name=experiment_name,
@@ -24,7 +24,7 @@ def train_lithos_yolo():
 
     path_temp = model.export(format="onnx") 
 
-    ruta_final_destino = "./weights/rocas_segmentacion.onnx"
+    ruta_final_destino = "/home/lithos_analithics_challenge/weights/yolo_approach/onnx/rocas_segmentacionv2.onnx"
     
     # Crear la carpeta de destino si no existe
     os.makedirs(os.path.dirname(ruta_final_destino), exist_ok=True)

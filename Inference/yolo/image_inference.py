@@ -43,7 +43,7 @@ class YOLOSegmentor:
         }
 
 if __name__ == "__main__":
-    onnx_path = "/home/lithos_analithics_challenge/Develop/weights/rocas_segmentacion.onnx"
+    onnx_path = "/home/lithos_analithics_challenge/weights/yolo_approach/rocas_segmentacionv2.onnx"
     img_path = "/home/lithos_analithics_challenge/images/og_dataset/valid/1706615061028_jpg.rf.f96b1f3bd3e7a02f9f076e127ba5aa4f.jpg"
     
     try:

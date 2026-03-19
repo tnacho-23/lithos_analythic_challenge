@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.3.0-runtime-ubuntu22.04
+FROM nvidia/cuda:12.1.0-devel-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
@@ -22,6 +22,8 @@ RUN pip3 install --no-cache-dir --upgrade pip setuptools wheel
 RUN pip3 install --no-cache-dir \
     torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 
+RUN pip3 install --no-cache-dir git+https://github.com/facebookresearch/segment-anything-2.git
+
 RUN pip3 install --no-cache-dir \
     timm \
     pillow \
@@ -36,5 +38,8 @@ RUN pip3 install --no-cache-dir \
     opencv-python 
 
 WORKDIR /home
+
+RUN mkdir -p checkpoints && \
+    wget -P checkpoints/ https://dl.fbaipublicfiles.com/segment_anything_2/072824/sam2_hiera_base_plus.pt
 
 CMD ["/bin/bash"]
