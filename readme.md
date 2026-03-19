@@ -13,7 +13,7 @@
 To run the develop framework, simply compile Develop Docker File (Based on ubuntu 22) and then you can run it using the following command:
 
 ```
-docker run --rm -it --gpus all -v "C:\Users\ignac\Escritorio\Delyrium\Lithos_Analytics_Challenge\images:/home/images" ubuntu_22_cuda
+docker run -it --gpus all -v "C:\Users\ignac\Escritorio\Delyrium\lithos_analytics_challenge\:/home/lithos_analithics_challenge" ubuntu_22_cuda
 ```
 
 * It is addapted to Windows Power Shell, using other environments might be a little different.

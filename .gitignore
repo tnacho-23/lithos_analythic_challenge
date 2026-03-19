@@ -5,5 +5,6 @@ venv/
 images/
 input/
 output/
+weights/
 *.ipynb_checkpoints
 .DS_Store

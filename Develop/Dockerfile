@@ -32,6 +32,7 @@ RUN pip3 install --no-cache-dir \
     pandas \
     gdown \
     transformers \
+    ultralytics \
     opencv-python 
 
 WORKDIR /home
