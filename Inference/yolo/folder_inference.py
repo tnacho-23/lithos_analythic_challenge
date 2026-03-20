@@ -98,7 +98,7 @@ class YOLOSegmentor:
             print(f"Detecciones únicas finales: {final_count}\n")
 
 if __name__ == "__main__":
-    pt_path = "/home/lithos_analithics_challenge/weights/yolo_approach/train_v3_medium/weights/best.pt"
+    pt_path = "/home/lithos_analithics_challenge/weights/yolo_approach/train_v1_medium/weights/best.pt"
     valid_folder = "/home/lithos_analithics_challenge/images/given_dataset/valid"
     
     try:

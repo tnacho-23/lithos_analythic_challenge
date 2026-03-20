@@ -46,7 +46,7 @@ def visualize_yolo_seg(img_path, label_path):
 
 # --- EXECUTION ---
 # Replace these with your actual local paths
-my_image = "C:/Users/ignac/Escritorio/Delyrium/lithos_analytics_challenge/images/full_dataset/test/images/VID-20240802-WA0018_mp4-0009_jpg.rf.4d27af874b3559edc5a63fb6b87398c4.jpg"
-my_label = "C:/Users/ignac/Escritorio/Delyrium/lithos_analytics_challenge/images/full_dataset/test/labels/VID-20240802-WA0018_mp4-0009_jpg.rf.4d27af874b3559edc5a63fb6b87398c4.txt"
+my_image = "C:/Users/ignac/Escritorio/Delyrium/lithos_analytics_challenge/images/given_dataset/train/1706611374828_jpg.rf.79507a6b18566ae1816c1ceae72a2d23.jpg"
+my_label = "C:/Users/ignac/Escritorio/Delyrium/lithos_analytics_challenge/images/given_dataset/train/labels/1706611374828_jpg.rf.79507a6b18566ae1816c1ceae72a2d23.txt"
 
 visualize_yolo_seg(my_image, my_label)
