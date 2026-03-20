@@ -1,133 +1,108 @@
 import cv2
-import os
-import time
 import numpy as np
+import torch
+import torchvision  # <--- Añadimos esta importación
 from ultralytics import YOLO
-from typing import Dict
 from pathlib import Path
 
 class YOLOSegmentor:
     def __init__(self, model_path: str):
-        # Cargamos el modelo (ONNX o PT)
         self.model = YOLO(model_path, task='segment')
 
     def apply_custom_preprocessing(self, bgr_image):
-        """Pipeline: Bilateral Filter -> LAB -> CLAHE -> BGR"""
-        # 1. Filtro Bilateral para suavizar ruido sin perder bordes
         smoothed = cv2.bilateralFilter(bgr_image, d=9, sigmaColor=75, sigmaSpace=75)
-        # 2. Conversión a LAB para procesar luminancia
         lab = cv2.cvtColor(smoothed, cv2.COLOR_BGR2LAB)
         l, a, b = cv2.split(lab)
-        # 3. Aplicar CLAHE al canal L
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         l = clahe.apply(l)
-        # 4. Re-combinar y volver a BGR
-        enhanced = cv2.cvtColor(cv2.merge((l, a, b)), cv2.COLOR_LAB2BGR)
-        return enhanced
+        return cv2.cvtColor(cv2.merge((l, a, b)), cv2.COLOR_LAB2BGR)
 
-    def process_folder(self, input_folder: str) -> Dict:
-        """Procesa imágenes dividiéndolas en 4 tiles para superar límites y ahorrar VRAM."""
+    def process_folder(self, input_folder: str):
         input_path = Path(input_folder)
-        if not input_path.exists():
-            raise FileNotFoundError(f"No se encontró la carpeta: {input_folder}")
-
         output_folder = input_path / "processed_yolo"
         output_folder.mkdir(exist_ok=True)
 
-        valid_extensions = ('.jpg', '.jpeg', '.png', '.bmp', '.webp')
-        image_files = [f for f in input_path.iterdir() if f.suffix.lower() in valid_extensions]
+        image_files = [f for f in input_path.iterdir() if f.suffix.lower() in ('.jpg', '.jpeg', '.png')]
 
-        total_detections_folder = 0
-        start_total_time = time.time()
+        overlap = 300 
+        iou_threshold = 0.9 
 
         for img_file in image_files:
-            # 1. Cargar imagen original
             image = cv2.imread(str(img_file))
             if image is None: continue
-
             h, w = image.shape[:2]
             mid_h, mid_w = h // 2, w // 2
             
-            # Definir coordenadas de los 4 cuadrantes
             tiles_coords = [
-                (0, mid_h, 0, mid_w),     # Superior Izquierda
-                (0, mid_h, mid_w, w),     # Superior Derecha
-                (mid_h, h, 0, mid_w),     # Inferior Izquierda
-                (mid_h, h, mid_w, w)      # Inferior Derecha
+                (0, mid_h + overlap, 0, mid_w + overlap),
+                (0, mid_h + overlap, mid_w - overlap, w),
+                (mid_h - overlap, h, 0, mid_w + overlap),
+                (mid_h - overlap, h, mid_w - overlap, w)
             ]
             
-            # Lienzo para reconstruir el resultado visual
-            full_output = np.zeros((h, w, 3), dtype=np.uint8)
-            detections_in_this_image = 0
+            all_boxes = []
+            all_confs = []
+            all_masks = []
 
-            print(f"--- Procesando: {img_file.name} ---")
+            print(f"--- Procesando con NMS Global: {img_file.name} ---")
 
-            for i, (y1, y2, x1, x2) in enumerate(tiles_coords):
+            for (y1, y2, x1, x2) in tiles_coords:
                 tile = image[y1:y2, x1:x2]
-                
-                # Preprocesamiento por tile
-                processed_tile = self.apply_custom_preprocessing(tile)
-
-                # Inferencia individual por tile
-                # max_det=1000 asegura que CADA pedazo de imagen pueda darte muchas rocas
-                results = self.model.predict(
-                    source=processed_tile, 
-                    conf=0.10, 
-                    max_det=300, 
-                    imgsz=640,
-                    save=False, 
-                    verbose=False
-                )
+                proc_tile = self.apply_custom_preprocessing(tile)
+                results = self.model.predict(proc_tile, conf=0.10, imgsz=640, verbose=False)
                 
                 res = results[0]
-                num_objects = len(res.boxes)
-                detections_in_this_image += num_objects
+                if res.boxes is not None and len(res.boxes) > 0:
+                    boxes = res.boxes.xyxy.clone()
+                    boxes[:, [0, 2]] += x1
+                    boxes[:, [1, 3]] += y1
+                    
+                    all_boxes.append(boxes)
+                    all_confs.append(res.boxes.conf)
+                    
+                    for i, mask in enumerate(res.masks.data):
+                        # Redimensionamos la máscara al tamaño real del tile antes de guardarla
+                        m = mask.cpu().numpy()
+                        m = cv2.resize(m, (x2 - x1, y2 - y1))
+                        all_masks.append({"mask": m, "coords": (y1, y2, x1, x2)})
 
-                # Dibujar máscaras en el fragmentom
-                tile_visual = res.plot(
-                    boxes=False, 
-                    labels=False, 
-                    conf=False, 
-                    masks=True,
-                    line_width=2
-                )
-                
-                # Insertar el fragmento en la imagen final
-                full_output[y1:y2, x1:x2] = tile_visual
-                print(f"  Tile {i+1}: {num_objects} objetos detectados.")
+            if not all_boxes: 
+                print(f"No se detectaron rocas en {img_file.name}")
+                continue
 
-            # Guardar la imagen compuesta
-            save_path = output_folder / img_file.name
-            cv2.imwrite(str(save_path), full_output)
+            all_boxes = torch.cat(all_boxes)
+            all_confs = torch.cat(all_confs)
+
+            # CORRECCIÓN AQUÍ: Usamos torchvision.ops.nms
+            # Pasamos las cajas y las confianzas (deben estar en la misma GPU/CPU)
+            keep_indices = torchvision.ops.nms(all_boxes, all_confs, iou_threshold)
             
-            total_detections_folder += detections_in_this_image
-            print(f"Total en imagen: {detections_in_this_image}\n")
+            mask_canvas = np.zeros((h, w, 3), dtype=np.uint8)
+            final_count = 0
 
-        return {
-            "total_time": time.time() - start_total_time,
-            "output_folder": str(output_folder),
-            "n_images": len(image_files),
-            "total_detections": total_detections_folder
-        }
+            for idx in keep_indices:
+                idx = idx.item()
+                m_data = all_masks[idx]
+                m, (y1, y2, x1, x2) = m_data["mask"], m_data["coords"]
+                
+                bool_mask = m > 0.5
+                color = np.random.randint(60, 255, (3,)).tolist()
+                
+                # Pintamos en la región global correspondiente
+                tile_area = mask_canvas[y1:y2, x1:x2]
+                tile_area[bool_mask] = color
+                final_count += 1
+
+            blended = cv2.addWeighted(image, 0.7, mask_canvas, 0.35, 0)
+            cv2.imwrite(str(output_folder / img_file.name), blended)
+            print(f"Detecciones únicas finales: {final_count}\n")
 
 if __name__ == "__main__":
-    # Rutas
-    onnx_path = "/home/lithos_analithics_challenge/weights/yolo_approach/onnx/rocas_segmentacionv1.onnx"
-    folder_path = "/home/lithos_analithics_challenge/images/given_dataset/valid"
+    pt_path = "/home/lithos_analithics_challenge/weights/yolo_approach/train_v3_medium/weights/best.pt"
+    valid_folder = "/home/lithos_analithics_challenge/images/given_dataset/valid"
     
     try:
-        segmentor = YOLOSegmentor(onnx_path)
-        print("Iniciando procesamiento con Slicing 2x2...\n")
-        
-        summary = segmentor.process_folder(folder_path)
-        
-        print("=" * 30)
-        print(f"PROCESO COMPLETADO")
-        print(f"Imágenes totales: {summary['n_images']}")
-        print(f"Detecciones totales: {summary['total_detections']}")
-        print(f"Tiempo total: {summary['total_time']:.2f}s")
-        print(f"Resultados en: {summary['output_folder']}")
-        print("=" * 30)
-        
+        segmentor = YOLOSegmentor(pt_path)
+        segmentor.process_folder(valid_folder)
     except Exception as e:
-        print(f"ERROR CRÍTICO: {e}")
+        print(f"ERROR: {e}")

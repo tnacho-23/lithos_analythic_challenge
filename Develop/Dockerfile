@@ -35,6 +35,7 @@ RUN pip3 install --no-cache-dir \
     gdown \
     transformers \
     ultralytics \
+    sahi \
     opencv-python 
 
 WORKDIR /home
