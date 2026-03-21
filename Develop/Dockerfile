@@ -36,6 +36,8 @@ RUN pip3 install --no-cache-dir \
     transformers \
     ultralytics \
     sahi \
+    accelerate \
+    datasets \
     opencv-python 
 
 WORKDIR /home

@@ -146,7 +146,7 @@ class DINOSegmentor:
             print(f"Rocas detectadas: {final_count}")
 
 if __name__ == "__main__":
-    dino_weights = "/home/lithos_analithics_challenge/weights/dino_approach/dino_rock_head_final.pth"
+    dino_weights = "/home/lithos_analithics_challenge/weights/dino_approach/dino_rock_v2_lastest.pth"
     valid_folder = "/home/lithos_analithics_challenge/images/given_dataset/valid"
     
     try:
