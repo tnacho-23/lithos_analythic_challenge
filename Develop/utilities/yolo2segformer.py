@@ -4,10 +4,12 @@ import os
 from pathlib import Path
 from tqdm import tqdm
 
-def yolo_to_semantic_mask(img_dir, label_dir, output_mask_dir, img_size=(640, 640)):
+def yolo_to_3class_mask(img_dir, label_dir, output_mask_dir, border_thickness=7):
     """
-    Convierte etiquetas de segmentación YOLO (.txt) a máscaras semánticas (.png).
-    Todas las rocas se pintan con valor de píxel 1 (clase 'roca').
+    Convierte etiquetas YOLO a máscaras de 3 clases:
+    0: Fondo
+    1: Cuerpo de la roca
+    2: Borde de la roca (para evitar que se fusionen)
     """
     img_path = Path(img_dir)
     lbl_path = Path(label_dir)
@@ -16,63 +18,68 @@ def yolo_to_semantic_mask(img_dir, label_dir, output_mask_dir, img_size=(640, 64
 
     image_files = [f for f in img_path.iterdir() if f.suffix.lower() in ('.jpg', '.jpeg', '.png')]
 
-    for img_file in tqdm(image_files, desc="Convirtiendo a Máscaras"):
-        # 1. Cargar imagen para obtener dimensiones reales
+    for img_file in tqdm(image_files, desc="Generando Máscaras 3-Clases"):
+        # 1. Obtener dimensiones
         img = cv2.imread(str(img_file))
         if img is None: continue
         h, w = img.shape[:2]
 
-        # 2. Crear máscara negra (fondo = 0)
-        # Usamos uint8 para que los valores sean 0 y 1
+        # 2. Crear máscara base (0 = Fondo)
         mask = np.zeros((h, w), dtype=np.uint8)
 
-        # 3. Buscar archivo de etiqueta correspondiente
+        # 3. Leer etiquetas
         label_file = lbl_path / f"{img_file.stem}.txt"
         
         if label_file.exists():
             with open(label_file, 'r') as f:
                 lines = f.readlines()
                 
+            polygons = []
             for line in lines:
                 parts = line.strip().split()
                 if len(parts) < 3: continue
                 
-                # parts[0] es la clase (usualmente 0 para rocas)
-                # parts[1:] son los puntos x, y, x, y... normalizados (0-1)
+                # Des-normalizar coordenadas
                 coords = np.array(parts[1:], dtype=np.float32).reshape(-1, 2)
-                
-                # Des-normalizar coordenadas al tamaño real de la imagen
                 coords[:, 0] *= w
                 coords[:, 1] *= h
-                
-                # Convertir a enteros para OpenCV
                 poly = coords.astype(np.int32)
-                
-                # 4. Pintar el polígono en la máscara con valor 1 (Clase Roca)
+                polygons.append(poly)
+            
+            # --- CAPA 1: CUERPO (Relleno) ---
+            for poly in polygons:
                 cv2.fillPoly(mask, [poly], color=1)
+            
+            # --- CAPA 2: BORDES (Contorno) ---
+            # Pintamos los bordes al final para que queden sobre los cuerpos
+            # y aseguren la separación entre rocas adyacentes.
+            for poly in polygons:
+                # isClosed=True para cerrar el polígono, grosor ajustable
+                cv2.polylines(mask, [poly], isClosed=True, color=2, thickness=border_thickness)
 
-        # 5. Guardar la máscara como PNG (sin compresión con pérdida)
-        # Nota: La imagen se verá negra al abrirla porque los valores son 0 y 1.
-        # Si quieres verla, multiplica 'mask * 255' antes de guardar (solo para visualización).
+        # 4. Guardar
         mask_filename = out_path / f"{img_file.stem}.png"
         cv2.imwrite(str(mask_filename), mask)
 
 if __name__ == "__main__":
-    # --- CONFIGURA TUS RUTAS AQUÍ ---
+    # --- CONFIGURACIÓN ---
     base_data = "/home/lithos_analithics_challenge/images/full_dataset_processed"
+    THICKNESS = 25
     
-    # Procesar split de entrenamiento
-    yolo_to_semantic_mask(
+    # Procesar Train
+    yolo_to_3class_mask(
         img_dir=f"{base_data}/train/images",
         label_dir=f"{base_data}/train/labels",
-        output_mask_dir=f"{base_data}/train/masks_png"
+        output_mask_dir=f"{base_data}/train/masks_segformer",
+        border_thickness=THICKNESS
     )
     
-    # Procesar split de validación
-    yolo_to_semantic_mask(
+    # Procesar Validation
+    yolo_to_3class_mask(
         img_dir=f"{base_data}/valid/images",
         label_dir=f"{base_data}/valid/labels",
-        output_mask_dir=f"{base_data}/valid/masks_png"
+        output_mask_dir=f"{base_data}/valid/masks_segformer",
+        border_thickness=THICKNESS
     )
     
-    print("\nPROCESO COMPLETADO. Las máscaras están en la carpeta 'masks_png'.")
+    print(f"\n¡LISTO! Máscaras generadas con bordes de {THICKNESS}px.")

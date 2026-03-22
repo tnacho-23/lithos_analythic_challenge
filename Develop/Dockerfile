@@ -38,7 +38,8 @@ RUN pip3 install --no-cache-dir \
     sahi \
     accelerate \
     datasets \
-    opencv-python 
+    opencv-python \
+    evaluate
 
 WORKDIR /home
 
