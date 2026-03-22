@@ -54,11 +54,11 @@ class SegFormer3ClassSegmentor:
 
         # --- CONFIGURACIÓN DE UMBRALES (AJUSTAR AQUÍ) ---
         threshold_initial = 0.65       # Menos estricto para detectar presencia general
-        threshold_refine = 0.85        # MUCHO más estricto para el refinamiento de objetos grandes
+        threshold_refine = 0.75        # MUCHO más estricto para el refinamiento de objetos grandes
         
         # --- OTRAS CONFIGURACIONES ---
-        overlap = 300 
-        rows, cols = 4, 4 
+        overlap = 100 
+        rows, cols = 3, 3 
         resegment_threshold_pct = 1.0 
         max_area_pct = 20.0 
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
