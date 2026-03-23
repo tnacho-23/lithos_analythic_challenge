@@ -1,19 +1,65 @@
-### Conceptos Clave de Granulometría
+## Lithos Analytics Inference Docker
 
-- En minería, la granulometría es la medición de la distribución de tamaños de las partículas (rocas).
+Este contenedor permite ejecutar inferencia de segmentación de rocas utilizando YOLOv8, SegFormer y SAM2 de manera automática.
 
-- D20, D50, D80: Son los "puntos de corte" de la Curva Granulométrica Acumulada. Por ejemplo, el D80 es el tamaño de partícula tal que el 80% del material (en masa o volumen) es más pequeño que ese tamaño. Es el indicador más crítico para ajustar las máquinas chancadoras.
-
-- Pasante Acumulado: El porcentaje de material que "pasa" por una malla de cierto tamaño.
-
-- Excentricidad/Deformidad: Mide qué tan "alargada" es una roca. Una roca muy excéntrica puede pasar por una malla de una forma pero no de otra, lo que afecta la eficiencia.
-
-### Run develop framework
-
-To run the develop framework, simply compile Develop Docker File (Based on ubuntu 22) and then you can run it using the following command:
+### 1. Construir la imagen
+Clonar este repositorio y desde la carpeta Inference:
 
 ```
-docker run -it --gpus all -v "C:\Users\ignac\Escritorio\Delyrium\lithos_analytics_challenge\:/home/lithos_analithics_challenge" deliryum_develop
+docker build -t lithos-inference .
 ```
 
-* It is addapted to Windows Power Shell, using other environments might be a little different.
+### 2. Estructura de Carpetas
+Para que el contenedor valide los pesos correctamente, organiza tus archivos locales así:
+
+- weights/yolo/best.pt
+
+- weights/segformer/final/ (debe contener config.json, etc.)
+
+- mis_imagenes/ (fotos .jpg o .png)
+
+### 3. Ejecución del contenedor
+
+El Docker está configurado para usar la GPU. Asegúrate de tener instalado nvidia-container-toolkit.
+
+* A. Correr los 3 modelos (YOLO + SegFormer + SAM2)
+
+Si no especificas --method, el script ejecutará los tres en secuencia y guardará los resultados en una subcarpeta dentro de tus imágenes.
+
+```
+docker run --gpus all \
+  -v /ruta/absoluta/pesos:/app/weights \
+  -v /ruta/absoluta/mis_imagenes:/data_input \
+  lithos-inference
+```
+
+- Ejemplo:
+
+```
+docker run --rm --gpus all -v C:\Users\ignac\Escritorio\Delyrium\lithos_analytics_challenge\weights:/app/weights -v C:\Users\ignac\Escritorio\Delyrium\lithos_analytics_challenge\Inference:/app/Inference -v C:\Users\ignac\Escritorio\Delyrium\lithos_analytics_challenge\images\given_dataset\valid:/data_input lithos_inference
+```
+
+
+* B. Correr un modelo específico
+Puedes seleccionar un método usando el flag --method [yolo | segformer | sam2].
+
+```
+docker run --gpus all \
+  -v /ruta/absoluta/pesos:/app/weights \
+  -v /ruta/absoluta/mis_imagenes:/data_input \
+  lithos-inference --input /data_input --method sam2
+```
+
+### 5. Resultados Generados
+Por cada imagen y modelo, el sistema genera:
+1. Imagen Segmentada: Visualización con máscaras de colores.
+
+2. Gráfico Granulométrico: Curva acumulada con labels D20, D50, D80.
+
+3. Histograma de Distribución: Frecuencia de tamaños en px.
+
+4. Gráfico de Deformidad: Score de excentricidad vs tamaño.
+
+5. CSV de Datos Crudos: Métricas geométricas por cada roca detectada.
+
+6. JSON de Metadatos: Tiempos de inferencia y método utilizado.

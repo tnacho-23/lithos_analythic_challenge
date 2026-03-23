@@ -6,5 +6,7 @@ images/
 input/
 output/
 weights/
+full_weights/
+checkpoints/
 *.ipynb_checkpoints
 .DS_Store
