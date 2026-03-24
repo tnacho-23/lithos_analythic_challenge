@@ -21,11 +21,17 @@ class SegFormerSegmentor:
         upsampled_probs = torch.nn.functional.interpolate(
             probs, size=tile_bgr.shape[:2], mode="bilinear", align_corners=False
         )
-        # Clase 1: 'Rock'
         rock_probs = upsampled_probs[0, 1].cpu().numpy()
         return np.where(rock_probs > threshold, 1, 0).astype(np.uint8)
 
-    def process_image(self, image_path: Path):
+    def process_image(self, image_path: Path, min_area_px: int = 500, erode_iters: int = 1, dilate_iters: int = 2):
+        """
+        Procesa la imagen siguiendo el flujo: Erode -> Filtro de Área -> Dilate.
+        
+        :param min_area_px: Umbral de área mínima para conservar una máscara.
+        :param erode_iters: Intensidad de la erosión inicial para eliminar ruido fino.
+        :param dilate_iters: Intensidad de la dilatación final para recuperar/expandir tamaño.
+        """
         image = cv2.imread(str(image_path))
         if image is None: return None, None, 0
         
@@ -33,14 +39,15 @@ class SegFormerSegmentor:
         total_area = h * w
         full_rock_mask = np.zeros((h, w), dtype=np.uint8)
         
-        # Configuración de tiles (3x3 con overlap)
-        rows, cols, overlap = 3, 3, 100
+        # Configuración de tiles y refinamiento (Mantenemos tu lógica original de tiles)
+        rows, cols, overlap = 4, 4, 100
         step_h, step_w = h // rows, w // cols
-        threshold_initial = 0.65
-        threshold_refine = 0.75
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+        threshold_initial = 0.6
+        threshold_refine = 0.7
+        kernel_small = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+        kernel_large = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 10))
 
-        # Fase 1: Inferencia por Tiles
+        # --- FASE 1: Inferencia Base ---
         for r in range(rows):
             for c in range(cols):
                 y1, y2 = max(0, r * step_h - overlap), min(h, (r + 1) * step_h + overlap)
@@ -48,8 +55,8 @@ class SegFormerSegmentor:
                 tile_mask = self.predict_tile(image[y1:y2, x1:x2], threshold=threshold_initial)
                 full_rock_mask[y1:y2, x1:x2] = np.maximum(full_rock_mask[y1:y2, x1:x2], tile_mask)
 
-        # Fase 2: Refinamiento (Re-segmentación de áreas grandes)
-        body_mask = cv2.morphologyEx(full_rock_mask, cv2.MORPH_OPEN, kernel, iterations=1)
+        # --- FASE 2: Refinamiento de Áreas ---
+        body_mask = cv2.morphologyEx(full_rock_mask, cv2.MORPH_OPEN, kernel_small, iterations=1)
         num_labels, labels_im, stats, _ = cv2.connectedComponentsWithStats(body_mask)
         final_refined_mask = np.zeros_like(body_mask)
 
@@ -66,19 +73,36 @@ class SegFormerSegmentor:
             else:
                 final_refined_mask[labels_im == i] = 1
 
-        final_refined_mask = cv2.morphologyEx(final_refined_mask, cv2.MORPH_CLOSE, kernel, iterations=1)
+        # --- FASE 3: ERODE -> FILTRO ÁREA -> DILATE ---
         
-        # Separación en máscaras individuales para RockAnalytics
-        num_labels_final, labels_final = cv2.connectedComponents(final_refined_mask)
+        # 1. ERODE: Encogemos la máscara para limpiar ruido de los bordes o puntos aislados
+        eroded = cv2.erode(final_refined_mask, kernel_small, iterations=erode_iters)
+        
+        # 2. FILTRO DE ÁREA: Buscamos componentes en la versión erosionada
+        num_labels_f, labels_f, stats_f, _ = cv2.connectedComponentsWithStats(eroded)
+        
         individual_masks = []
         color_mask = np.zeros_like(image)
 
-        for label in range(1, num_labels_final):
-            mask_single = np.where(labels_final == label, 255, 0).astype(np.uint8)
-            individual_masks.append(mask_single)
-            # Para visualización
+        for label in range(1, num_labels_f):
+            # Obtener área después de la erosión
+            area_post_erode = stats_f[label, cv2.CC_STAT_AREA]
+            
+            # FILTRO: Si es menor al parámetro min_area_px, se descarta
+            if area_post_erode < min_area_px:
+                continue
+                
+            # 3. DILATE: Solo para las máscaras que sobrevivieron
+            mask_single = (labels_f == label).astype(np.uint8) * 255
+            expanded_mask = cv2.dilate(mask_single, kernel_large, iterations=dilate_iters)
+            
+            individual_masks.append(expanded_mask)
+            
+            # Visualización
             color = np.random.randint(60, 255, (3,)).tolist()
-            color_mask[labels_final == label] = color
+            color_mask[expanded_mask > 0] = color
 
+        # Superposición final
         blended = cv2.addWeighted(image, 0.7, color_mask, 0.35, 0)
-        return blended, individual_masks, num_labels_final - 1
+        
+        return blended, individual_masks, len(individual_masks)

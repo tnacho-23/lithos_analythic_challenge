@@ -21,7 +21,7 @@ def main():
     parser.add_argument("--input", type=str, required=True, help="Carpeta de imágenes")
     parser.add_argument("--output", type=str, default=None, help="Carpeta de salida")
     parser.add_argument("--model", type=str, 
-                        default="/home/lithos_analithics_challenge/weights/segformer_approach/final",
+                        default="/home/lithos_analithics_challenge/weights/segformer/final",
                         help="Ruta al modelo SegFormer")
     
     args = parser.parse_args()
