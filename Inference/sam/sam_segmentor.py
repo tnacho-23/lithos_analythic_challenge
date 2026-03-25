@@ -2,6 +2,7 @@ import cv2
 import torch
 import numpy as np
 import torchvision
+import gc
 from pathlib import Path
 from sam2.build_sam import build_sam2
 from sam2.automatic_mask_generator import SAM2AutomaticMaskGenerator
@@ -12,18 +13,24 @@ class SAM2Segmentor:
         self.model = build_sam2(model_cfg, checkpoint_path, device=self.device)
         self.max_area_ratio = max_area_ratio
         
-        # Configuración de ALTA SENSIBILIDAD
+        # --- CONFIGURACIÓN PARA EVITAR REFINAMIENTO ITERATIVO ---
         self.mask_generator = SAM2AutomaticMaskGenerator(
             model=self.model,
-            points_per_side=64,
+            points_per_side=32,            # Reducimos a 32 (1024 pts) para que la CPU no colapse
             points_per_batch=64,
-            pred_iou_thresh=0.5,
-            stability_score_thresh=0.75,
-            min_mask_region_area=50,
+            pred_iou_thresh=0.8,           # Umbral más alto para procesar menos máscaras mediocres
+            stability_score_thresh=0.85,
+            min_mask_region_area=100,
+            
+            # PARÁMETROS CLAVE PARA EVITAR EL ERROR DE _C:
+            use_m2m=False,                 # DESACTIVA el refinamiento iterativo (Mask-to-Mask)
+            multimask_output=False,        # Genera solo la mejor máscara por punto (ahorra CPU)
+            output_mode="binary_mask"      # Asegura que devuelva máscaras simples
         )
 
     def apply_custom_preprocessing(self, bgr_image):
-        smoothed = cv2.bilateralFilter(bgr_image, d=9, sigmaColor=75, sigmaSpace=75)
+        # Reducimos d=5 para que el filtro bilateral no sume tanto tiempo de CPU
+        smoothed = cv2.bilateralFilter(bgr_image, d=5, sigmaColor=50, sigmaSpace=50)
         lab = cv2.cvtColor(smoothed, cv2.COLOR_BGR2LAB)
         l, a, b = cv2.split(lab)
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
@@ -36,7 +43,7 @@ class SAM2Segmentor:
         
         h, w = image.shape[:2]
         mid_h, mid_w = h // 2, w // 2
-        overlap = 300
+        overlap = 150 # Menos solapamiento para procesar menos área repetida
         border_margin = 50
         
         tiles_coords = [
@@ -53,8 +60,14 @@ class SAM2Segmentor:
             proc_tile = self.apply_custom_preprocessing(tile)
             tile_rgb = cv2.cvtColor(proc_tile, cv2.COLOR_BGR2RGB)
             
+            # Liberar memoria antes de cada tile
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+                gc.collect()
+
             with torch.no_grad():
                 with torch.autocast(device_type="cuda", dtype=torch.float16):
+                    # Aquí es donde SAM 2 generará el warning, pero no se quedará pegado
                     masks = self.mask_generator.generate(tile_rgb)
             
             for m_dict in masks:
@@ -68,10 +81,10 @@ class SAM2Segmentor:
 
         if not all_boxes: return image, [], 0
 
-        # NMS Global
+        # NMS Global (necesario por el solapamiento de tiles)
         boxes_tensor = torch.tensor(all_boxes, dtype=torch.float32)
         confs_tensor = torch.tensor(all_confs, dtype=torch.float32)
-        keep_indices = torchvision.ops.nms(boxes_tensor, confs_tensor, iou_threshold=0.6)
+        keep_indices = torchvision.ops.nms(boxes_tensor, confs_tensor, iou_threshold=0.5)
 
         mask_canvas = np.zeros((h, w, 3), dtype=np.uint8)
         allowed_region = np.zeros((h, w), dtype=bool)
@@ -83,17 +96,14 @@ class SAM2Segmentor:
             m_data = all_masks_data[idx]
             m, (y1, y2, x1, x2) = m_data["segmentation"], m_data["coords"]
             
-            # Recorte por borde permitido
             tile_allowed = allowed_region[y1:y2, x1:x2]
             final_bool_mask = np.logical_and(m, tile_allowed)
             
             if np.any(final_bool_mask):
-                # Generar máscara 255/0 para RockAnalytics
                 full_mask = np.zeros((h, w), dtype=np.uint8)
                 full_mask[y1:y2, x1:x2][final_bool_mask] = 255
                 final_individual_masks.append(full_mask)
                 
-                # Pintar canvas
                 color = np.random.randint(60, 255, (3,)).tolist()
                 mask_canvas[y1:y2, x1:x2][final_bool_mask] = color
 

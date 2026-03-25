@@ -1,0 +1,53 @@
+\documentclass[letterpaper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1.8cm,left=2.8cm,paper=letterpaper]{geometry}
+\usepackage{amssymb, amsmath, amsfonts, latexsym}
+\usepackage{graphicx, wrapfig, float, subfigure, capt-of}
+\usepackage[table]{xcolor}
+\usepackage{multirow, bigstrut, booktabs}
+\usepackage{fancyhdr, appendix, enumerate, blindtext, makeidx}
+\usepackage[spanish]{babel}
+\addto\captionsspanish{
+	\renewcommand{\tablename}{Tabla}
+}
+\usepackage[none]{hyphenat}
+\usepackage[font={small}]{caption}
+\usepackage[bookmarks=true, colorlinks=true, linkcolor=black, citecolor=black, menucolor=black, urlcolor=black]{hyperref}
+\usepackage[backend=bibtex]{biblatex}
+\usepackage{colortbl}
+\usepackage{array}
+\bibliography{referencias}
+
+% Configuración de página
+\renewcommand{\headrulewidth}{0pt}
+\usepackage{color}
+\definecolor{gray51}{rgb}{0.51,0.51,0.51}
+\definecolor{gray71}{rgb}{0.71,0.71,0.71}
+
+
+
+\begin{document}
+	\noindent
+	%\begin{minipage}{0.3\textwidth}
+	%	\includegraphics[width=4.5cm]{images/logo.png} 
+	%\end{minipage}
+	\begin{minipage}{0.65\textwidth}
+		\vspace{0.6cm}  % Ajusta este valor para bajar el texto
+		\raggedright
+		\textsc{\color{red}Departamento de Ingeniería Eléctrica}\\
+		\textsc{\color{gray51}Facultad de Ciencias Físicas y Matemáticas}\\
+		\textsc{\color{gray51}Universidad de Chile}\\
+		\textsc{\color{gray51}EL7008-1 Procesamiento Avanzado de Imágenes}
+	\end{minipage}
+	
+	\vspace{0cm}  % Ajusta este valor si aún hay mucho espacio
+	
+	\begin{center}
+		{\LARGE \textbf{Título}}\\
+		{\Large Subtítulo}
+	\end{center}
+	
+	\input{desarollo}
+	\printbibliography
+	
+\end{document}

@@ -1,0 +1,49 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.3 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated as
+% required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+\datalist[entry]{nty/global//global/global/global}
+  \entry{manual}{book}{}{}
+    \name{author}{2}{}{%
+      {{hash=dEM}{%
+         prefix={de},
+         prefixi={d\bibinitperiod},
+         family={Energía},
+         familyi={E\bibinitperiod},
+         given={Ministerio},
+         giveni={M\bibinitperiod},
+      }}%
+      {{hash=dgFD}{%
+         prefix={de\bibnamedelima geofísica},
+         prefixi={d\bibinitperiod\bibinitdelim g\bibinitperiod},
+         family={FCFM},
+         familyi={F\bibinitperiod},
+         given={Departamento},
+         giveni={D\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{EMdFDdg1}
+    \strng{fullhash}{EMdFDdg1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{sortinit}{E}
+    \field{sortinithash}{E}
+    \field{title}{Explorador Solar para Autoconsumo, manual del usuario}
+    \field{year}{2016}
+  \endentry
+\enddatalist
+\endinput

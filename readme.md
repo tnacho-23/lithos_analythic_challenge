@@ -24,11 +24,12 @@ El Docker está configurado para usar la GPU. Asegúrate de tener instalado nvid
 
 * A. Correr los 3 modelos (YOLO + SegFormer + SAM2)
 
-Si no especificas --method, el script ejecutará los tres en secuencia y guardará los resultados en una subcarpeta dentro de tus imágenes.
+Si no especificas --method, el script ejecutará los tres en secuencia y guardará los resultados en una subcarpeta dentro de tus imágenes. Es necesario que montes el volumen para los pesos de yolo y segformer (contactar a ignacio.romero.a@ug.uchile.cl), el volumen con dirección a la carpeta Inference de este repositorio y el volumen con dirección a la carpeta con las imágenes a las cuales quieres realizar la inferencia.
 
 ```
 docker run --gpus all \
   -v /ruta/absoluta/pesos:/app/weights \
+  -v /ruta/carpeta/Inference/:/app/Inference
   -v /ruta/absoluta/mis_imagenes:/data_input \
   lithos-inference
 ```
@@ -36,7 +37,7 @@ docker run --gpus all \
 - Ejemplo:
 
 ```
-docker run --rm --gpus all -v C:\Users\ignac\Escritorio\Delyrium\lithos_analytics_challenge\weights:/app/weights -v C:\Users\ignac\Escritorio\Delyrium\lithos_analytics_challenge\Inference:/app/Inference -v C:\Users\ignac\Escritorio\Delyrium\lithos_analytics_challenge\images\given_dataset\valid:/data_input lithos_inference
+docker run --rm --gpus all -v C:\Users\ignac\Escritorio\Delyrium\lithos_analytics_challenge\weights:/app/weights -v C:\Users\ignac\Escritorio\Delyrium\lithos_analytics_challenge\Inference:/app/Inference -v C:\Users\ignac\Escritorio\Delyrium\lithos_analytics_challenge\images\full_dataset_processed\test\images:/data_input lithos_inference
 ```
 
 
