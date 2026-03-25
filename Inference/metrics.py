@@ -27,7 +27,7 @@ class LithosEvaluator:
     
     def __init__(self, pixel_to_mm: float = 1.0):
         self.pixel_to_mm = pixel_to_mm
-        self.save_dir = Path(__file__).resolve().parent / "metrics"
+        self.save_dir = TEST_BASE_PATH / "metrics"
         self.save_dir.mkdir(parents=True, exist_ok=True)
 
     def _yolo_to_masks(self, label_file: Path, img_shape: Tuple[int, int]) -> List[np.ndarray]:

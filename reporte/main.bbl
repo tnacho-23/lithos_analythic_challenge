@@ -16,34 +16,5 @@
   {}
 \endgroup
 
-\datalist[entry]{nty/global//global/global/global}
-  \entry{manual}{book}{}{}
-    \name{author}{2}{}{%
-      {{hash=dEM}{%
-         prefix={de},
-         prefixi={d\bibinitperiod},
-         family={Energía},
-         familyi={E\bibinitperiod},
-         given={Ministerio},
-         giveni={M\bibinitperiod},
-      }}%
-      {{hash=dgFD}{%
-         prefix={de\bibnamedelima geofísica},
-         prefixi={d\bibinitperiod\bibinitdelim g\bibinitperiod},
-         family={FCFM},
-         familyi={F\bibinitperiod},
-         given={Departamento},
-         giveni={D\bibinitperiod},
-      }}%
-    }
-    \strng{namehash}{EMdFDdg1}
-    \strng{fullhash}{EMdFDdg1}
-    \field{labelnamesource}{author}
-    \field{labeltitlesource}{title}
-    \field{sortinit}{E}
-    \field{sortinithash}{E}
-    \field{title}{Explorador Solar para Autoconsumo, manual del usuario}
-    \field{year}{2016}
-  \endentry
-\enddatalist
+\datalist[entry]{nty/global//global/global/global}\enddatalist
 \endinput

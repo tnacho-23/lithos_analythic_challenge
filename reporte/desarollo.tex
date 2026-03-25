@@ -1,3 +1,85 @@
-\section{Sección}
+\section{Descripción de los métodos implementados}
+Para esta prueba técnica, se implementaron 3 approaches de modelos de segmentación:
+\subsection{Segformer}
+Implementa un sistema que adapta la segmentación de rocas utilizando una arquitectura de Transformer (SegFormer), a una segmentación de instancias. El código divide imágenes grandes en trozos (tiles) para procesarlas (los 3 approaches lo hacen), realiza una doble pasada de inferencia para refinar detalles y aplica post-procesamiento morfológico para limpiar el ruido y separar instancias.
 
-hola \cite{manual}
+Está configurado bajo los siguientes hiperparámetros:
+\begin{itemize}
+	\item threshold\_initial (0.6) y threshold\_refine (0.7): Se usa un umbral inicial más bajo para capturar la mayor cantidad de "candidatos" a roca, y uno más alto en la fase de refinamiento para asegurar que solo las detecciones con alta confianza se mantengan, reduciendo falsos positivos.
+
+	\item overlap (100 px): Evita que las rocas que quedan cortadas en los bordes de un tile se pierdan o se segmenten mal, permitiendo una transición suave entre ventanas de procesamiento.
+
+	\item erode\_iters (1) y dilate\_iters (2): La erosión inicial elimina conexiones delgadas por ruido (puntos aislados). La dilatación posterior es mayor (2 iteraciones) para recuperar el tamaño original de la roca y cerrar posibles huecos internos generados por la segmentación.
+
+	\item min\_area\_px (500): Actúa como un filtro de ruido físico; cualquier objeto detectado que sea más pequeño que este umbral se considera un error de la cámara o un fragmento irrelevante para el conteo.
+
+\end{itemize}
+
+\subsection{YOLO}
+Utiliza YOLOv8-seg para detectar y segmentar rocas de forma individual. Al igual que segformer, divide el proceso en tiles y unifica las máscaras para poder tener una mayor cantidad de detecciones. Tiene un umbral de confianza bastante bajo configurado, lo que permite 
+
+
+\subsection{SAM2}
+Implementa una segmentación universal que no necesita estar entrenada específicamente para ``rocas''. Utiliza una malla de puntos (grid) para ``preguntar'' al modelo qué objetos hay en cada posición. Es el enfoque más potente de los tres, pero también el más pesado, por lo que incluye una gestión agresiva de memoria (limpieza de caché de GPU) y desactivación de funciones iterativas para ganar velocidad.
+
+Está configurado con los siguientes hiperparámetros:
+\begin{itemize}
+	\item points\_per\_side (32): Define una rejilla de $32 \times 32$ (1024 puntos) para muestrear la imagen. Se redujo a este valor para equilibrar la capacidad de detectar rocas pequeñas sin saturar la memoria RAM/VRAM.
+	\item use\_m2m=False y multimask\_output=False: Estas son decisiones críticas de rendimiento. Al desactivar el refinamiento "máscara a máscara" y pedir solo una opción por punto, se evita que el modelo entre en bucles de post-procesamiento pesados, solucionando errores de compatibilidad en entornos sin soporte completo de CUDA.
+	\item pred\_iou\_thresh (0.8) y stability\_score\_thresh (0.85): Son filtros de calidad muy estrictos. SAM 2 tiende a proponer muchas máscaras; estos valores aseguran que solo se conserven aquellas donde el modelo está muy seguro de que la forma es coherente y estable.
+	\item max\_area\_ratio (0.2): Evita que el modelo segmente el "fondo" o la cinta transportadora/suelo como una sola roca gigante, descartando cualquier máscara que ocupe más del 20\% del área del tile.overlap (150 px) y border\_margin (50 px): Se reduce el solapamiento respecto al código anterior para ahorrar tiempo de cómputo, y se añade un margen de borde para ignorar detecciones incompletas en los extremos del canvas.
+\end{itemize}
+
+\section{Comparación de resultados}
+
+Pese a que fue entregado un dataset para poder entrenar y hacer pruebas, se encontraron 2 problemas principales: Por un lado, este no contaba con labels, y realizar este proceso de manera detallada implicaría dedicarle bastante tiempo para una sola persona. Por el otro lado, la cantidad de imágenes con las que se contaban parecía ser muy poca. Por lo anterior, se decidió armar un dataset basasdo en ROCK2\footnote{\url{https://app.roboflow.com/label-2qvnw/rock-2-dsmeh-rfs7w/1/images?split=test}} ROCK Data Video\footnote{\url{https://universe.roboflow.com/university-6nhm5/rock-_data_video/dataset/1}}. Las pruebas a continuación se realizaron sobre los conjuntos de pruebas de estos datasets junto a algunas imágenes del conjunto de validación entregado y labeleado a mano para poder comparar.
+
+Así, la figura \ref{fig:Visual} muestra los resultados de segmentación sobre una imagen del conjunto de validación entregado, en la cual se puede decir, a simple 
+
+\begin{figure}[H]
+	\centering
+	\captionsetup{justification=centering,margin=2cm}
+	\subfigure[Imagen Original.]{\includegraphics[width=6cm]{images/og.jpg}}
+	\subfigure[SAM2.]{\includegraphics[width=6cm]{images/sam.png}}
+	\subfigure[YOLO.]{\includegraphics[width=6cm]{images/seg.png}}
+	\subfigure[Segformer.]{\includegraphics[width=6cm]{images/yolo.png}}
+	\caption{Resultados visuales diferentes approaches.}
+	\label{fig:Visual}
+\end{figure}
+
+Si ahora se analiza la tabla \ref{tab:comparativa-modelos}, el rendimiento varía significativamente dependiendo de si priorizamos la precisión de segmentación, la velocidad o la precisión en el conteo.
+
+\subsection{Precisión de segmentación}
+
+YOLO lidera ligeramente en IoU promedio ($0.4864$), lo que indica que sus máscaras se ajustan mejor a la verdad de campo (GT) en términos espaciales generales. Segformer es el menos preciso en términos de solapamiento ($0.4473$), fallando completamente (IoU 0.0) en algunas imágenes difíciles (como los videos de trituración de rocas). Los resultados detallados se encuentran en el archivo adjunto.
+
+\subsection{Tiempo de inferencia}
+
+Segformer y YOLO son los más rápidos, con tiempos alrededor de los 5 segundos por imagen.
+
+SAM2 es notablemente más lento, promediando casi 14 segundos, lo que lo hace menos ideal para aplicaciones en tiempo real sin optimización adicional.
+
+\subsection{Conteo de objetos}
+
+ Segformer es el más fiable para el conteo, con el error absoluto más bajo ($31$ objetos de diferencia promedio).YOLO tiende a sobreestimar masivamente el número de objetos en ciertas imágenes (por ejemplo, predijo 1,044 objetos donde había 287), lo que dispara su error promedio a $201$.SAM2 mantiene un equilibrio razonable pero tiende a sobreestimar más que Segformer.
+	
+	\begin{table}[h]
+		\centering
+		\caption{Comparativa de Modelos: Precisión, Tiempo y Error}
+		\label{tab:comparativa-modelos}
+		\begin{tabular}{lccc}
+			\toprule
+			\textbf{Modelo} & \textbf{IoU Promedio} & \textbf{Tiempo de} & \textbf{Error Absoluto}  \\
+			& \textbf{(Precisión)} & \textbf{Inferencia (s)} & \textbf{Conteo}  \\
+			\midrule
+			SAM2      & 0.4778          & 13.79          & 62.71                    \\
+			Segformer & 0.4473          & \textbf{5.01}  & \textbf{31.00}  \\
+			YOLO      & \textbf{0.5266} & 3.87           & 125.71                     \\
+			\bottomrule
+		\end{tabular}
+	\end{table}
+	
+\subsection{Conclusiones}
+PEse a la simplicidad de uso que presenta SAM, no es lo mejor
+YOLO es rápido y entrega muy buenos resultados
+Segformer es competitivo, pero al ser un modelo implementado desde 0 es difícil que logre competir contra los otros dos con poco tiempo de desarrollo, sin embargo es muy prometedor

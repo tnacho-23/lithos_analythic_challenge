@@ -45,7 +45,7 @@ class YOLOSegmentor:
             proc_tile = self.apply_custom_preprocessing(tile)
             
             # Inferencia
-            results = self.model.predict(proc_tile, conf=0.10, imgsz=640, verbose=False)
+            results = self.model.predict(proc_tile, conf=0.30, imgsz=640, verbose=False)
             res = results[0]
             
             if res.boxes is not None and len(res.boxes) > 0:
