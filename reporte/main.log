@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (MiKTeX 25.3) (preloaded format=pdflatex 2025.4.2)  25 MAR 2026 12:46
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (MiKTeX 25.3) (preloaded format=pdflatex 2025.4.2)  25 MAR 2026 13:01
 entering extended mode
  \write18 enabled.
  %&-line parsing enabled.
@@ -927,25 +927,31 @@ Overfull \hbox (0.67096pt too wide) in paragraph at lines 30--31
 e un mar-gen de bor-de pa-ra ig-no-rar de-tec-cio-nes
  []
 
-<images/og.jpg, id=53, 1953.2975pt x 871.255pt>
+
+Overfull \hbox (3.04648pt too wide) in paragraph at lines 37--38
+[]\OT1/cmr/m/n/10.95 En la Fi-gu-ra [][]1[][] se com-pa-ran los re-sul-ta-dos d
+e seg-men-ta-ci^^Son. Si bien el des-em-pe~no ba-se es sa-tis-fac-to-rio
+ []
+
+<images/og.jpg, id=42, 1953.2975pt x 871.255pt>
 File: images/og.jpg Graphic file (type jpg)
 <use images/og.jpg>
-Package pdftex.def Info: images/og.jpg  used on input line 40.
+Package pdftex.def Info: images/og.jpg  used on input line 42.
 (pdftex.def)             Requested size: 170.71652pt x 76.13625pt.
-<images/sam.png, id=54, 1953.2975pt x 871.255pt>
+<images/sam.png, id=43, 1953.2975pt x 871.255pt>
 File: images/sam.png Graphic file (type png)
 <use images/sam.png>
-Package pdftex.def Info: images/sam.png  used on input line 41.
+Package pdftex.def Info: images/sam.png  used on input line 43.
 (pdftex.def)             Requested size: 170.71652pt x 76.13625pt.
-<images/seg.png, id=55, 1953.2975pt x 871.255pt>
+<images/seg.png, id=44, 1953.2975pt x 871.255pt>
 File: images/seg.png Graphic file (type png)
 <use images/seg.png>
-Package pdftex.def Info: images/seg.png  used on input line 42.
+Package pdftex.def Info: images/seg.png  used on input line 44.
 (pdftex.def)             Requested size: 170.71652pt x 76.13625pt.
-<images/yolo.png, id=56, 1953.2975pt x 871.255pt>
+<images/yolo.png, id=45, 1953.2975pt x 871.255pt>
 File: images/yolo.png Graphic file (type png)
 <use images/yolo.png>
-Package pdftex.def Info: images/yolo.png  used on input line 43.
+Package pdftex.def Info: images/yolo.png  used on input line 45.
 (pdftex.def)             Requested size: 170.71652pt x 76.13625pt.
 
 
@@ -966,34 +972,32 @@ LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
  ***********
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: 3E0783CB2949CAB7E3895775576781DE;1316.
+(rerunfilecheck)             Checksum: 551C6E2BCB6AAAC9383E662AE3707C66;811.
 Package logreq Info: Writing requests to 'main.run.xml'.
 \openout1 = `main.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 22052 strings out of 473523
- 385278 string characters out of 5714631
- 1012659 words of memory out of 5000000
- 44973 multiletter control sequences out of 15000+600000
+ 22043 strings out of 473523
+ 385152 string characters out of 5714631
+ 1012632 words of memory out of 5000000
+ 44967 multiletter control sequences out of 15000+600000
  568496 words of font info for 76 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  75i,10n,81p,1873b,1844s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/ignac/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/
 cmbx10.pfb><C:/Users/ignac/AppData/Local/Programs/MiKTeX/fonts/type1/public/ams
 fonts/cm/cmbx12.pfb><C:/Users/ignac/AppData/Local/Programs/MiKTeX/fonts/type1/p
-ublic/amsfonts/cm/cmmi10.pfb><C:/Users/ignac/AppData/Local/Programs/MiKTeX/font
-s/type1/public/amsfonts/cm/cmr10.pfb><C:/Users/ignac/AppData/Local/Programs/MiK
-TeX/fonts/type1/public/amsfonts/cm/cmr12.pfb><C:/Users/ignac/AppData/Local/Prog
-rams/MiKTeX/fonts/type1/public/amsfonts/cm/cmr6.pfb><C:/Users/ignac/AppData/Loc
-al/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr8.pfb><C:/Users/ignac/AppD
-ata/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr9.pfb><C:/Users/ign
-ac/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/
-Users/ignac/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmtt9.
-pfb>
-Output written on main.pdf (3 pages, 12750665 bytes).
+ublic/amsfonts/cm/cmr10.pfb><C:/Users/ignac/AppData/Local/Programs/MiKTeX/fonts
+/type1/public/amsfonts/cm/cmr12.pfb><C:/Users/ignac/AppData/Local/Programs/MiKT
+eX/fonts/type1/public/amsfonts/cm/cmr6.pfb><C:/Users/ignac/AppData/Local/Progra
+ms/MiKTeX/fonts/type1/public/amsfonts/cm/cmr8.pfb><C:/Users/ignac/AppData/Local
+/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr9.pfb><C:/Users/ignac/AppDat
+a/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/ign
+ac/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmtt9.pfb>
+Output written on main.pdf (3 pages, 12742916 bytes).
 PDF statistics:
- 127 PDF objects out of 1000 (max. 8388607)
- 21 named destinations out of 1000 (max. 500000)
- 93 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 110 PDF objects out of 1000 (max. 8388607)
+ 18 named destinations out of 1000 (max. 500000)
+ 69 words of extra memory for PDF output out of 10000 (max. 10000000)
 

@@ -34,7 +34,7 @@ Está configurado con los siguientes hiperparámetros:
 
 Pese a que fue entregado un dataset para poder entrenar y hacer pruebas, se encontraron 2 problemas principales: Por un lado, este no contaba con labels, y realizar este proceso de manera detallada implicaría dedicarle bastante tiempo para una sola persona. Por el otro lado, la cantidad de imágenes con las que se contaban parecía ser muy poca. Por lo anterior, se decidió armar un dataset basasdo en ROCK2\footnote{\url{https://app.roboflow.com/label-2qvnw/rock-2-dsmeh-rfs7w/1/images?split=test}} ROCK Data Video\footnote{\url{https://universe.roboflow.com/university-6nhm5/rock-_data_video/dataset/1}}. Las pruebas a continuación se realizaron sobre los conjuntos de pruebas de estos datasets junto a algunas imágenes del conjunto de validación entregado y labeleado a mano para poder comparar.
 
-Así, la figura \ref{fig:Visual} muestra los resultados de segmentación sobre una imagen del conjunto de validación entregado, en la cual se puede decir, a simple 
+En la Figura \ref{fig:Visual} se comparan los resultados de segmentación. Si bien el desempeño base es satisfactorio en los tres casos, se aprecian variaciones significativas en la densidad de las detecciones y en la fidelidad de las máscaras resultantes.
 
 \begin{figure}[H]
 	\centering
@@ -49,19 +49,11 @@ Así, la figura \ref{fig:Visual} muestra los resultados de segmentación sobre u
 
 Si ahora se analiza la tabla \ref{tab:comparativa-modelos}, el rendimiento varía significativamente dependiendo de si priorizamos la precisión de segmentación, la velocidad o la precisión en el conteo.
 
-\subsection{Precisión de segmentación}
+Se revela una clara dicotomía entre la precisión de segmentación visual y la utilidad práctica en el conteo de objetos. Por un lado, YOLO se posiciona como el modelo más eficiente y preciso en términos espaciales, logrando el IoU más alto (0.5266) y el tiempo de respuesta más bajo (3.87 s). No obstante, esta superioridad técnica en la delimitación de formas no se traduce en un conteo fiable, ya que presenta un Error Absoluto de Conteo de 125.71, el más elevado de la comparativa. Este fenómeno sugiere una tendencia a la sobresegmentación, donde el modelo identifica múltiples fragmentos dentro de un mismo objeto o confunde texturas con elementos individuales, invalidándolo para tareas donde la cuantificación exacta sea crítica.
 
-YOLO lidera ligeramente en IoU promedio ($0.4864$), lo que indica que sus máscaras se ajustan mejor a la verdad de campo (GT) en términos espaciales generales. Segformer es el menos preciso en términos de solapamiento ($0.4473$), fallando completamente (IoU 0.0) en algunas imágenes difíciles (como los videos de trituración de rocas). Los resultados detallados se encuentran en el archivo adjunto.
+En contraposición, Segformer surge como la opción más equilibrada y funcional para aplicaciones de inventario o granulometría, a pesar de tener el IoU más bajo (0.4473). Su gran ventaja competitiva reside en la fiabilidad del conteo, registrando un error mínimo de 31.00, lo que representa una precisión cuatro veces superior a la de YOLO en esta métrica. 
 
-\subsection{Tiempo de inferencia}
-
-Segformer y YOLO son los más rápidos, con tiempos alrededor de los 5 segundos por imagen.
-
-SAM2 es notablemente más lento, promediando casi 14 segundos, lo que lo hace menos ideal para aplicaciones en tiempo real sin optimización adicional.
-
-\subsection{Conteo de objetos}
-
- Segformer es el más fiable para el conteo, con el error absoluto más bajo ($31$ objetos de diferencia promedio).YOLO tiende a sobreestimar masivamente el número de objetos en ciertas imágenes (por ejemplo, predijo 1,044 objetos donde había 287), lo que dispara su error promedio a $201$.SAM2 mantiene un equilibrio razonable pero tiende a sobreestimar más que Segformer.
+Por su parte, SAM2 queda rezagado en un punto intermedio de precisión, pero con una penalización excesiva en eficiencia, tardando casi el triple que sus competidores (13.79 s). 
 	
 	\begin{table}[h]
 		\centering
@@ -73,13 +65,13 @@ SAM2 es notablemente más lento, promediando casi 14 segundos, lo que lo hace me
 			& \textbf{(Precisión)} & \textbf{Inferencia (s)} & \textbf{Conteo}  \\
 			\midrule
 			SAM2      & 0.4778          & 13.79          & 62.71                    \\
-			Segformer & 0.4473          & \textbf{5.01}  & \textbf{31.00}  \\
-			YOLO      & \textbf{0.5266} & 3.87           & 125.71                     \\
+			Segformer & 0.4473          & 5.01  & \textbf{31.00}  \\
+			YOLO      & \textbf{0.5266} & \textbf{3.87}           & 125.71                     \\
 			\bottomrule
 		\end{tabular}
 	\end{table}
 	
 \subsection{Conclusiones}
-PEse a la simplicidad de uso que presenta SAM, no es lo mejor
-YOLO es rápido y entrega muy buenos resultados
-Segformer es competitivo, pero al ser un modelo implementado desde 0 es difícil que logre competir contra los otros dos con poco tiempo de desarrollo, sin embargo es muy prometedor
+El análisis comparativo de los modelos evaluados permite determinar que no existe una solución única universal, sino que la elección del algoritmo debe alinearse estrictamente con los objetivos operativos del sistema. A pesar de la versatilidad y simplicidad de uso que caracteriza a SAM2, su elevado costo computacional y tiempos de inferencia no se traducen en una superioridad métrica que justifique su implementación en entornos de alta demanda. Por el contrario, YOLO se consolida como la opción más robusta para el procesamiento en tiempo real; su excepcional velocidad de respuesta y su alto índice de precisión espacial (IoU) lo hacen ideal para aplicaciones de monitoreo rápido donde la localización y delimitación de las partículas sea la prioridad absoluta sobre la exactitud numérica.Por otra parte, el desempeño de Segformer resulta sumamente revelador. Aun siendo un modelo implementado desde cero, lo que representa una desventaja competitiva frente a arquitecturas con años de optimización previa, ha demostrado ser el modelo óptimo para el análisis estadístico y de cantidad. Su capacidad para mantener el error de conteo más bajo de la comparativa lo posiciona como una arquitectura prometedora para el control de calidad granulométrico. 
+
+Finalmente, es importante destacar que los resultados obtenidos constituyen una base sólida que podría escalar significativamente. La disponibilidad de un dataset más extenso y específico del entorno real, junto con un volumen mayor de imágenes etiquetadas manualmente, permitiría un fine-tuning más profundo de estas arquitecturas. Con una inversión adicional de tiempo en el curado de datos y tiempo de desarrollo, es altamente probable que las brechas de error detectadas, especialmente la sobresegmentación en YOLO y el bajo IoU en Segformer, se reduzcan drásticamente, alcanzando niveles de precisión industriales.
