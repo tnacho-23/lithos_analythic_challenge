@@ -13,20 +13,43 @@
 \citation{biblatex-control}
 \abx@aux@refcontext{nty/global//global/global/global}
 \babel@aux{spanish}{}
-\@writefile{toc}{\contentsline {section}{\numberline {1}Descripción de los métodos implementados}{1}{section.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}Segformer}{1}{subsection.1.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.2}YOLO}{1}{subsection.1.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.3}SAM2}{1}{subsection.1.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {2}Comparación de resultados}{2}{section.2}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Resultados visuales diferentes approaches.}}{2}{figure.caption.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {1}Metodología}{1}{section.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}Entrenamiento}{1}{subsection.1.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.2}Selección y Justificación del Conjunto de Datos}{1}{subsection.1.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {1.2.1}Preprocesamiento de los datos}{1}{subsubsection.1.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {1.2.2}Segmentación Semántica y de Instancias con SegFormer}{2}{subsubsection.1.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Configuración Multiclase y Función de Pérdida}{2}{section*.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Protocolo de Evaluación}{2}{section*.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {1.2.3}Segmentación de Instancias con YOLOv8}{2}{subsubsection.1.2.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Arquitectura y Entrenamiento}{2}{section*.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {1.2.4}Segmentación Zero-Shot con SAM2}{3}{subsubsection.1.2.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.3}Inferencia}{3}{subsection.1.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {1.3.1}Inferencia Jerárquica y Refinamiento Adaptativo con SegFormer}{3}{subsubsection.1.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Segmentación Multiescala}{3}{section*.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Refinamiento Morfológico Estructural}{3}{section*.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {1.3.2}Inferencia por Cuadrantes y Ensamble de Instancias con YOLOv8}{3}{subsubsection.1.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Paradigma de la Ventana Deslizante}{3}{section*.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Proyección Global y Supresión de Redundancias}{4}{section*.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Reconstrucción de Máscaras}{4}{section*.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {1.3.3}Segmentación con SAM2}{4}{subsubsection.1.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Arquitectura de Inferencia Eficiente}{4}{section*.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Manejo de Memoria y Exclusión de Bordes}{4}{section*.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {2}Resultados}{4}{section.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Resultados en conjuntos de datos etiquetados}{4}{subsection.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.1.1}Análisis Comparativo: Rock2 y RockVideo}{5}{subsubsection.2.1.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Comparativa de Modelos: Test Set Rock2 y RockVideo}}{5}{table.caption.11}\protected@file@percent }
 \providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
-\newlabel{fig:Visual}{{1}{2}{Resultados visuales diferentes approaches}{figure.caption.1}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Comparativa de Modelos: Precisión, Tiempo y Error}}{3}{table.caption.2}\protected@file@percent }
-\newlabel{tab:comparativa-modelos}{{1}{3}{Comparativa de Modelos: Precisión, Tiempo y Error}{table.caption.2}{}}
-\@writefile{lot}{\contentsline {subtable}{\numberline{(a)}{\ignorespaces {Imagen Original.}}}{3}{table.caption.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {subtable}{\numberline{(b)}{\ignorespaces {SAM2.}}}{3}{table.caption.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {subtable}{\numberline{(c)}{\ignorespaces {YOLO.}}}{3}{table.caption.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {subtable}{\numberline{(d)}{\ignorespaces {Segformer.}}}{3}{table.caption.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Conclusiones}{3}{subsection.2.1}\protected@file@percent }
+\newlabel{tab:comparativa-modelos}{{1}{5}{Comparativa de Modelos: Test Set Rock2 y RockVideo}{table.caption.11}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.1.2}Análisis Comparativo: Test Set Rock2}{5}{subsubsection.2.1.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Comparativa de Modelos: Test Set Rock2}}{5}{table.caption.12}\protected@file@percent }
+\newlabel{tab:resultados-metodos}{{2}{5}{Comparativa de Modelos: Test Set Rock2}{table.caption.12}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Resultados Dataset Entregado}{5}{subsection.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}Conclusiones}{5}{section.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Resultados visuales sobre el conjunto de validación entregado}}{6}{figure.caption.13}\protected@file@percent }
+\newlabel{fig:Visual}{{1}{6}{Resultados visuales sobre el conjunto de validación entregado}{figure.caption.13}{}}
+\@writefile{lof}{\contentsline {subfigure}{\numberline{(a)}{\ignorespaces {Imagen Original}}}{6}{figure.caption.13}\protected@file@percent }
+\@writefile{lof}{\contentsline {subfigure}{\numberline{(b)}{\ignorespaces {SAM2}}}{6}{figure.caption.13}\protected@file@percent }
+\@writefile{lof}{\contentsline {subfigure}{\numberline{(c)}{\ignorespaces {YOLO}}}{6}{figure.caption.13}\protected@file@percent }
+\@writefile{lof}{\contentsline {subfigure}{\numberline{(d)}{\ignorespaces {Segformer}}}{6}{figure.caption.13}\protected@file@percent }
 \abx@aux@read@bbl@mdfivesum{A94AB01A6908FE46049683B135B529B2}
-\gdef \@abspage@last{3}
+\gdef \@abspage@last{6}

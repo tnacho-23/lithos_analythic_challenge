@@ -1,77 +1,207 @@
-\section{Descripción de los métodos implementados}
-Para esta prueba técnica, se implementaron 3 approaches de modelos de segmentación:
-\subsection{Segformer}
-Implementa un sistema que adapta la segmentación de rocas utilizando una arquitectura de Transformer (SegFormer), a una segmentación de instancias. El código divide imágenes grandes en trozos (tiles) para procesarlas (los 3 approaches lo hacen), realiza una doble pasada de inferencia para refinar detalles y aplica post-procesamiento morfológico para limpiar el ruido y separar instancias.
+\section{Metodología}
+Para esta prueba técnica, se implementaron 3 approaches de modelos de segmentación: Segformer, YOLO y SAM2.
 
-Está configurado bajo los siguientes hiperparámetros:
+\subsection{Entrenamiento}
+
+\subsection{Selección y Justificación del Conjunto de Datos}
+
+A pesar de contar con un conjunto de datos inicial proporcionado para el desafío, se determinó que su uso para el entrenamiento supervisado de los modelos \textbf{SegFormer} y \textbf{YOLOv8} no era óptimo bajo las condiciones del desarrollo. Esta decisión estratégica se fundamentó en los siguientes criterios:
+
 \begin{itemize}
-	\item threshold\_initial (0.6) y threshold\_refine (0.7): Se usa un umbral inicial más bajo para capturar la mayor cantidad de "candidatos" a roca, y uno más alto en la fase de refinamiento para asegurar que solo las detecciones con alta confianza se mantengan, reduciendo falsos positivos.
-
-	\item overlap (100 px): Evita que las rocas que quedan cortadas en los bordes de un tile se pierdan o se segmenten mal, permitiendo una transición suave entre ventanas de procesamiento.
-
-	\item erode\_iters (1) y dilate\_iters (2): La erosión inicial elimina conexiones delgadas por ruido (puntos aislados). La dilatación posterior es mayor (2 iteraciones) para recuperar el tamaño original de la roca y cerrar posibles huecos internos generados por la segmentación.
-
-	\item min\_area\_px (500): Actúa como un filtro de ruido físico; cualquier objeto detectado que sea más pequeño que este umbral se considera un error de la cámara o un fragmento irrelevante para el conteo.
-
+	\item \textbf{Costo Operativo y Ausencia de Etiquetas:} El conjunto de datos original carecía de anotaciones (\textit{labels}) de segmentación. Dado que la delimitación precisa de fragmentos rocosos requiere un alto rigor morfológico, el etiquetado manual habría consumido recursos temporales críticos. Se optó por priorizar el desarrollo de algoritmos de post-procesamiento e inferencia, donde el impacto en la precisión final es superior.
+	\item \textbf{Limitaciones de Generalización:} La cantidad de imágenes, aunque considerable para un proceso de etiquetado humano, resultaba insuficiente para garantizar la convergencia de modelos robustos capaces de generalizar ante diversas condiciones de operación.
+	\item \textbf{Potencial de Mejora:} No obstante, cabe señalar que contar con este dataset debidamente etiquetado permitiría, en implementaciones futuras con entornos visualmente análogos, obtener rendimientos superiores mediante técnicas de \textit{transfer learning} aplicadas a SegFormer y YOLO.
 \end{itemize}
 
-\subsection{YOLO}
-Utiliza YOLOv8-seg para detectar y segmentar rocas de forma individual. Al igual que segformer, divide el proceso en tiles y unifica las máscaras para poder tener una mayor cantidad de detecciones. Tiene un umbral de confianza bastante bajo configurado, lo que permite 
+Por lo anterior, se utilizaron dos fuentes de datos externas para el entrenamiento: \textbf{Rock2}\footnote{\url{https://app.roboflow.com/label-2qvnw/rock-2-dsmeh-rfs7w/1/images?split=test}} y \textbf{RockVideo}\footnote{\url{https://universe.roboflow.com/university-6nhm5/rock-_data_video/dataset/1}}.
+\subsubsection{Preprocesamiento de los datos}
 
+Para garantizar la calidad de las características extraídas y mitigar el ruido visual inherente a las muestras geológicas, se implementó un flujo de trabajo de preprocesamiento automatizado sobre el conjunto de datos original (\textit{full\_dataset}). Este proceso se aplicó de manera uniforme a las particiones de entrenamiento, validación y prueba, y consta de las siguientes etapas principales:
 
-\subsection{SAM2}
-Implementa una segmentación universal que no necesita estar entrenada específicamente para ``rocas''. Utiliza una malla de puntos (grid) para ``preguntar'' al modelo qué objetos hay en cada posición. Es el enfoque más potente de los tres, pero también el más pesado, por lo que incluye una gestión agresiva de memoria (limpieza de caché de GPU) y desactivación de funciones iterativas para ganar velocidad.
-
-Está configurado con los siguientes hiperparámetros:
 \begin{itemize}
-	\item points\_per\_side (32): Define una rejilla de $32 \times 32$ (1024 puntos) para muestrear la imagen. Se redujo a este valor para equilibrar la capacidad de detectar rocas pequeñas sin saturar la memoria RAM/VRAM.
-	\item use\_m2m=False y multimask\_output=False: Estas son decisiones críticas de rendimiento. Al desactivar el refinamiento "máscara a máscara" y pedir solo una opción por punto, se evita que el modelo entre en bucles de post-procesamiento pesados, solucionando errores de compatibilidad en entornos sin soporte completo de CUDA.
-	\item pred\_iou\_thresh (0.8) y stability\_score\_thresh (0.85): Son filtros de calidad muy estrictos. SAM 2 tiende a proponer muchas máscaras; estos valores aseguran que solo se conserven aquellas donde el modelo está muy seguro de que la forma es coherente y estable.
-	\item max\_area\_ratio (0.2): Evita que el modelo segmente el "fondo" o la cinta transportadora/suelo como una sola roca gigante, descartando cualquier máscara que ocupe más del 20\% del área del tile.overlap (150 px) y border\_margin (50 px): Se reduce el solapamiento respecto al código anterior para ahorrar tiempo de cómputo, y se añade un margen de borde para ignorar detecciones incompletas en los extremos del canvas.
+	\item \textbf{Filtrado Bilateral (Preservación de Bordes):} Se aplicó un filtro bilateral con parámetros $d=9$, $\sigma_{Color}=75$ y $\sigma_{Space}=75$. El objetivo es suavizar las texturas internas de las rocas y reducir el ruido de sensor, sin comprometer la nitidez de los bordes y fracturas. A diferencia de un desenfoque Gaussiano tradicional, este método conserva las transiciones de intensidad críticas para la segmentación de objetos.
+	
+	\item \textbf{Ecualización de Histograma Adaptativa (CLAHE):} Dado que las condiciones de iluminación en entornos mineros o de laboratorio pueden variar, se transformó el espacio de color de BGR a CIELAB para aislar el canal de luminancia ($L$). Sobre este canal se aplicó la técnica \textit{Contrast Limited Adaptive Histogram Equalization} (CLAHE) con un límite de contraste de $2.0$ y una rejilla de $8 \times 8$. Esto permite una mejora del contraste local, resaltando rasgos morfológicos y texturales que podrían ser imperceptibles en zonas subexpuestas.
+	
+	\item \textbf{Reconstrucción y Organización:} Tras el procesamiento del canal de luminancia, la imagen fue reconvertida al espacio de color original. El sistema asegura la integridad referencial manteniendo la correspondencia exacta entre las imágenes procesadas y sus respectivos archivos de anotación (\textit{labels}), los cuales son transferidos a la nueva estructura de directorios sin modificaciones.
 \end{itemize}
 
-\section{Comparación de resultados}
 
-Pese a que fue entregado un dataset para poder entrenar y hacer pruebas, se encontraron 2 problemas principales: Por un lado, este no contaba con labels, y realizar este proceso de manera detallada implicaría dedicarle bastante tiempo para una sola persona. Por el otro lado, la cantidad de imágenes con las que se contaban parecía ser muy poca. Por lo anterior, se decidió armar un dataset basasdo en ROCK2\footnote{\url{https://app.roboflow.com/label-2qvnw/rock-2-dsmeh-rfs7w/1/images?split=test}} ROCK Data Video\footnote{\url{https://universe.roboflow.com/university-6nhm5/rock-_data_video/dataset/1}}. Las pruebas a continuación se realizaron sobre los conjuntos de pruebas de estos datasets junto a algunas imágenes del conjunto de validación entregado y labeleado a mano para poder comparar.
+\subsubsection{Segmentación Semántica y de Instancias con SegFormer}
 
-En la Figura \ref{fig:Visual} se comparan los resultados de segmentación. Si bien el desempeño base es satisfactorio en los tres casos, se aprecian variaciones significativas en la densidad de las detecciones y en la fidelidad de las máscaras resultantes.
+Para la segmentación semántica de los fragmentos rocosos, se implementó la arquitectura \textbf{SegFormer} basada en el backbone \textit{MiT-B1} pre-entrenado. Este modelo destaca por su estructura jerárquica de \textit{Transformers} que evita el uso de \textit{positional encodings} fijos, facilitando la inferencia en diferentes resoluciones.
 
-\begin{figure}[H]
+\paragraph{Configuración Multiclase y Función de Pérdida}
+El problema se definió como una segmentación de tres clases: fondo, cuerpo de la roca y borde de la roca. Para abordar el desbalance de clases inherente a la morfología de los fragmentos (donde el área de los bordes es significativamente menor al cuerpo), se integró una función de pérdida de Entropía Cruzada con pesos diferenciados:
+\begin{equation}
+	\mathcal{L} = -\sum_{c=1}^{3} w_c \cdot y_c \log(\hat{y}_c)
+\end{equation}
+donde se asignó un peso $w_{border} = 5.0$ para penalizar con mayor severidad los errores en los contornos de las rocas, mientras que las demás clases mantuvieron un peso unitario ($1.0$).
+
+\paragraph{Protocolo de Evaluación}
+El rendimiento del modelo se monitoreó mediante la métrica \textit{mean Intersection over Union} (mIoU), calculada de forma independiente para cada categoría. Debido a que la arquitectura genera mapas de características a una escala reducida, se aplicó una interpolación bilineal a los \textit{logits} de salida para recuperar las dimensiones originales de la máscara de referencia antes de realizar el cálculo de la métrica:
+\begin{equation}
+	IoU_c = \frac{TP_c}{TP_c + FP_c + FN_c}
+\end{equation}
+El entrenamiento se ejecutó durante 150 épocas con una tasa de aprendizaje de $6 \times 10^{-5}$, utilizando el optimizador AdamW y una estrategia de guardado basada en el mejor mIoU obtenido en el conjunto de validación.
+
+\subsubsection{Segmentación de Instancias con YOLOv8}
+
+Como aproximación alternativa, se empleó la arquitectura \textbf{YOLOv8} orientada a la segmentación de instancias. A diferencia de los métodos semánticos convencionales, este modelo permite detectar y segmentar cada fragmento de roca de manera individual, lo cual es crítico para aplicaciones de análisis granulométrico.
+
+\paragraph{Arquitectura y Entrenamiento}
+Se seleccionó la variante \textit{YOLOv8-Medium} (\texttt{yolov8m-seg}) para obtener un compromiso robusto entre velocidad de inferencia y precisión en la definición de las máscaras. El proceso de optimización se configuró bajo los siguientes parámetros:
+\begin{itemize}
+	\item \textbf{Resolución de entrada:} $640 \times 640$ píxeles.
+	\item \textbf{Épocas:} 100 iteraciones sobre el conjunto completo de datos.
+	\item \textbf{Tamaño de lote:} 16 imágenes por iteración.
+	\item \textbf{Transfer Learning:} Uso de pesos pre-entrenados para la inicialización del backbone y la cabeza de segmentación.
+\end{itemize}
+
+\subsubsection{Segmentación Zero-Shot con SAM2}
+
+A diferencia de las arquitecturas anteriormente descritas, para el modelo \textbf{SAM2} (\textit{Segment Anything Model 2}) no se realizó un proceso de ajuste fino o re-entrenamiento supervisado. En su lugar, se explotó su capacidad intrínseca de \textbf{generalización zero-shot}, fundamentada en su pre-entrenamiento masivo sobre el conjunto de datos SA-1B.
+
+SAM2 opera como un modelo de segmentación basado en \textit{prompts}, capaz de generar máscaras binarias precisas a partir de coordenadas puntuales o cajas delimitadoras (bounding boxes). En el contexto de este experimento, el modelo se utiliza como un extractor de máscaras de alta fidelidad, donde su arquitectura de \textit{Transformer} desacoplado permite inferir la geometría de los fragmentos rocosos de manera agnóstica a la textura específica del dominio, garantizando una delimitación de bordes superior sin incurrir en los costos computacionales de un nuevo ciclo de entrenamiento.
+
+\subsection{Inferencia}
+
+\subsubsection{Inferencia Jerárquica y Refinamiento Adaptativo con SegFormer}
+
+Se implementó un flujo de inferencia para \textbf{SegFormer} basado en una estrategia de segmentación por teselas combinada con un post-procesamiento morfológico de tres etapas.
+
+\paragraph{Segmentación Multiescala}
+La imagen se divide en una rejilla de $4 \times 4$ sub-regiones con solapamiento. Se define un mecanismo de doble umbralización ($\tau_{init}=0.6, \tau_{refine}=0.7$) para discriminar la presencia de material rocoso. Las regiones de interés (ROI) detectadas se reconstruyen en un lienzo global $M_{base}$.
+
+\paragraph{Refinamiento Morfológico Estructural}
+Para garantizar la integridad de las mediciones granulométricas, se aplicó un filtro de morfología matemática secuencial. Primero, se realiza una erosión $\epsilon$ para separar contactos espurios entre rocas:
+\begin{equation}
+	M_{eroded} = M_{base} \ominus S_{small}
+\end{equation}
+Posteriormente, se aplica un filtrado de área sobre el conjunto de componentes conectados $\mathcal{C}$:
+\begin{equation}
+	\mathcal{C}_{filtered} = \{ c \in \mathcal{C} \mid Area(c) \geq \theta_{area} \}
+\end{equation}
+donde $\theta_{area} = 500$ px. Finalmente, se aplica una dilatación $\delta$ con un núcleo de mayor tamaño ($S_{large}$) para restaurar la morfología original de los fragmentos:
+\begin{equation}
+	M_{final} = M_{filtered} \oplus S_{large}
+\end{equation}
+
+Esta secuencia permite una delimitación robusta de los bordes, eliminando el ruido residual del modelo sin comprometer la escala real de los fragmentos detectados.
+
+\subsubsection{Inferencia por Cuadrantes y Ensamble de Instancias con YOLOv8}
+
+Para la inferencia con el modelo \textbf{YOLOv8m-seg}, se desarrolló un sistema de reconstrucción de instancias que permite consolidar detecciones parciales en un mapa de segmentación global único.
+
+\paragraph{Paradigma de la Ventana Deslizante}
+La imagen de entrada se descompone en una rejilla de $2 \times 2$ cuadrantes con un solapamiento $\delta = 300$ px. Cada cuadrante se procesa de forma independiente, utilizando un umbral de confianza $\tau = 0.30$ y una resolución de entrada de 640 px para optimizar la velocidad de inferencia.
+
+\paragraph{Proyección Global y Supresión de Redundancias}
+Las detecciones locales se proyectan al lienzo global mediante una traslación de coordenadas. Para resolver las duplicidades inherentes a la zona de traslape, se implementó una Supresión de No-Máximos (NMS) a nivel de imagen completa:
+\begin{equation}
+	\mathcal{D}_{final} = \text{NMS}(\mathcal{B}_{global}, \mathcal{C}, \gamma = 0.9)
+\end{equation}
+donde $\mathcal{B}_{global}$ representa el conjunto de cajas delimitadoras proyectadas y $\gamma$ es el umbral de IoU. 
+
+\paragraph{Reconstrucción de Máscaras}
+Tras la supresión, cada instancia superviviente es binarizada y almacenada en una matriz independiente $M \in \{0, 1\}^{H \times W}$. Este método asegura la integridad de la cuenta de objetos, permitiendo que cada fragmento sea identificado como una entidad discreta sin distorsiones provocadas por el fraccionamiento de la imagen original.
+
+\subsubsection{Segmentación con SAM2}
+
+La implementación de \textbf{SAM2} se enfocó en la eficiencia operativa mediante la desactivación de procesos iterativos y la gestión activa de la memoria volátil.
+
+\paragraph{Arquitectura de Inferencia Eficiente}
+Se configuró el generador automático de máscaras para operar en modo de salida única, eliminando la recursividad del modelo:
+\begin{equation}
+	M_{opt} = \text{SAM2}_{gen}(\text{use\_m2m} = \text{False}, \text{multimask} = \text{False})
+\end{equation}
+Para compensar la reducción de puntos de muestreo (1,024 puntos totales), se aumentaron los umbrales de confianza ($\tau_{IoU} = 0.8$) y estabilidad ($S = 0.85$), priorizando la calidad de la segmentación sobre la cantidad de detecciones espurias.
+
+\paragraph{Manejo de Memoria y Exclusión de Bordes}
+Dada la naturaleza del hardware, se implementó un ciclo de liberación de recursos tras la inferencia de cada tesela $T_{i,j}$:
+\begin{equation}
+	\text{Memory}_{free} = \text{EmptyCache}(\text{GPU}) + \text{GC}(\text{RAM})
+\end{equation}
+Posteriormente, las instancias supervivientes al algoritmo de NMS Global ($\gamma = 0.5$) son filtradas por una región de interés global $\Omega_{border}$ que excluye los márgenes perimetrales. Este procedimiento asegura que el análisis granulométrico posterior se realice sobre fragmentos cuya geometría ha sido capturada de forma completa y robusta.
+
+
+
+\section{Resultados}
+
+En esta sección se presentan los hallazgos obtenidos tras la evaluación de las tres arquitecturas implementadas. La validación del desempeño se realizó bajo tres ejes complementarios: (i) evaluación cuantitativa sobre el conjunto de prueba combinado de \textit{Rock2} y \textit{RockVideo}, (ii) evaluación específica sobre el conjunto de prueba de \textit{Rock2}, y (iii) un análisis cualitativo visual sobre el conjunto de validación proporcionado para el desafío.
+
+Es importante destacar que, si bien el conjunto \textit{RockVideo} presenta métricas inferiores debido a su naturaleza (imágenes con mayor ruido visual y desenfoque de movimiento), su inclusión en la etapa de entrenamiento fue fundamental para incrementar la robustez general y la capacidad de generalización de los modelos supervisados ante condiciones adversas.
+
+\subsection{Resultados en conjuntos de datos etiquetados}
+
+A continuación, se analizan los resultados obtenidos en los \textit{testsets} que contaban con etiquetas de referencia (\textit{ground truth}).
+
+\subsubsection{Análisis Comparativo: Rock2 y RockVideo}
+
+En la Tabla \ref{tab:comparativa-modelos} se observa el rendimiento promedio al integrar ambos conjuntos de datos. 
+
+\begin{table}[ht]
 	\centering
-	\captionsetup{justification=centering,margin=2cm}
-	\subfigure[Imagen Original.]{\includegraphics[width=6cm]{images/og.jpg}}
-	\subfigure[SAM2.]{\includegraphics[width=6cm]{images/sam.png}}
-	\subfigure[YOLO.]{\includegraphics[width=6cm]{images/seg.png}}
-	\subfigure[Segformer.]{\includegraphics[width=6cm]{images/yolo.png}}
-	\caption{Resultados visuales diferentes approaches.}
+	\caption{Comparativa de Modelos: Test Set Rock2 y RockVideo}
+	\label{tab:comparativa-modelos}
+	\begin{tabular}{lccc}
+		\toprule
+		\textbf{Modelo} & \textbf{IoU Promedio} & \textbf{Tiempo de} & \textbf{Error Absoluto} \\
+		& \textbf{(Precisión)} & \textbf{Inferencia (s)} & \textbf{Conteo (MAE)} \\
+		\midrule
+		SAM2      & 0.4778          & 13.79          & 62.71                    \\
+		Segformer & 0.4473          & 5.01           & \textbf{31.00}           \\
+		YOLO      & \textbf{0.5266} & \textbf{3.87}  & 125.71                   \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+De estos datos se desprende que \textbf{YOLOv8-seg} lidera en precisión (IoU de 0.5266) y eficiencia temporal (3.87 s). Por otro lado, \textbf{Segformer} destaca por su consistencia en el conteo de objetos, obteniendo el error más bajo (31.00), lo que sugiere una mayor resiliencia para identificar fragmentos individuales a pesar de una menor precisión geométrica en la máscara.
+
+\subsubsection{Análisis Comparativo: Test Set Rock2}
+
+Al aislar el conjunto \textit{Rock2} (Tabla \ref{tab:resultados-metodos}), donde las condiciones de imagen son más controladas, las métricas muestran un incremento significativo.
+
+\begin{table}[ht]
+	\centering
+	\caption{Comparativa de Modelos: Test Set Rock2}
+	\label{tab:resultados-metodos}
+	\begin{tabular}{lccc}
+		\toprule
+		\textbf{Método} & \textbf{IoU Promedio} & \textbf{Inference Time} & \textbf{Diferencia Count} \\
+		& & \textbf{Promedio (s)} & \textbf{Promedio (MAE)} \\
+		\midrule
+		SAM2        & 0.7477          & 17.2137          & 81.75          \\
+		YOLO        & \textbf{0.7541} & \textbf{5.2383}  & 52.13          \\
+		Segformer   & 0.6977          & 7.9694           & \textbf{24.88} \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+En este escenario, YOLO y SAM2 obtienen resultados de IoU competitivos (0.75), confirmando que la calidad de la segmentación está estrechamente ligada a la nitidez de la muestra. Nuevamente, Segformer se posiciona como la herramienta más precisa para el conteo de fragmentos con un MAE de 24.88.
+
+\subsection{Resultados Dataset Entregado}
+
+Debido a la ausencia de etiquetas originales en el conjunto de datos proporcionado, la evaluación en este apartado se limita a un análisis cualitativo. Como se observa en la Figura \ref{fig:Visual}, los tres modelos logran identificar y segmentar los fragmentos rocosos de manera satisfactoria, a pesar de no haber sido entrenados con imágenes específicas de este entorno.
+
+\begin{figure}[ht]
+	\centering
+	\subfigure[Imagen Original]{\includegraphics[width=0.45\textwidth]{images/og.jpg}}
+	\subfigure[SAM2]{\includegraphics[width=0.45\textwidth]{images/sam.png}}
+	\subfigure[YOLO]{\includegraphics[width=0.45\textwidth]{images/seg.png}}
+	\subfigure[Segformer]{\includegraphics[width=0.45\textwidth]{images/yolo.png}}
+	\caption{Resultados visuales sobre el conjunto de validación entregado}
 	\label{fig:Visual}
 \end{figure}
 
-Si ahora se analiza la tabla \ref{tab:comparativa-modelos}, el rendimiento varía significativamente dependiendo de si priorizamos la precisión de segmentación, la velocidad o la precisión en el conteo.
+Visualmente, \textbf{SAM2} genera máscaras con una fidelidad geométrica superior, capturando los bordes con alta precisión. En contraste, \textbf{YOLO} y \textbf{Segformer} presentan segmentaciones con contornos más simplificados o poligonales. Sin embargo, la capacidad de detección general es robusta en las tres aproximaciones.
 
-Se revela una clara dicotomía entre la precisión de segmentación visual y la utilidad práctica en el conteo de objetos. Por un lado, YOLO se posiciona como el modelo más eficiente y preciso en términos espaciales, logrando el IoU más alto (0.5266) y el tiempo de respuesta más bajo (3.87 s). No obstante, esta superioridad técnica en la delimitación de formas no se traduce en un conteo fiable, ya que presenta un Error Absoluto de Conteo de 125.71, el más elevado de la comparativa. Este fenómeno sugiere una tendencia a la sobresegmentación, donde el modelo identifica múltiples fragmentos dentro de un mismo objeto o confunde texturas con elementos individuales, invalidándolo para tareas donde la cuantificación exacta sea crítica.
+\section{Conclusiones}
 
-En contraposición, Segformer surge como la opción más equilibrada y funcional para aplicaciones de inventario o granulometría, a pesar de tener el IoU más bajo (0.4473). Su gran ventaja competitiva reside en la fiabilidad del conteo, registrando un error mínimo de 31.00, lo que representa una precisión cuatro veces superior a la de YOLO en esta métrica. 
+Tras el análisis de las métricas y la inspección visual, se concluye lo siguiente:
 
-Por su parte, SAM2 queda rezagado en un punto intermedio de precisión, pero con una penalización excesiva en eficiencia, tardando casi el triple que sus competidores (13.79 s). 
-	
-	\begin{table}[h]
-		\centering
-		\caption{Comparativa de Modelos: Precisión, Tiempo y Error}
-		\label{tab:comparativa-modelos}
-		\begin{tabular}{lccc}
-			\toprule
-			\textbf{Modelo} & \textbf{IoU Promedio} & \textbf{Tiempo de} & \textbf{Error Absoluto}  \\
-			& \textbf{(Precisión)} & \textbf{Inferencia (s)} & \textbf{Conteo}  \\
-			\midrule
-			SAM2      & 0.4778          & 13.79          & 62.71                    \\
-			Segformer & 0.4473          & 5.01  & \textbf{31.00}  \\
-			YOLO      & \textbf{0.5266} & \textbf{3.87}           & 125.71                     \\
-			\bottomrule
-		\end{tabular}
-	\end{table}
-	
-\subsection{Conclusiones}
-El análisis comparativo de los modelos evaluados permite determinar que no existe una solución única universal, sino que la elección del algoritmo debe alinearse estrictamente con los objetivos operativos del sistema. A pesar de la versatilidad y simplicidad de uso que caracteriza a SAM2, su elevado costo computacional y tiempos de inferencia no se traducen en una superioridad métrica que justifique su implementación en entornos de alta demanda. Por el contrario, YOLO se consolida como la opción más robusta para el procesamiento en tiempo real; su excepcional velocidad de respuesta y su alto índice de precisión espacial (IoU) lo hacen ideal para aplicaciones de monitoreo rápido donde la localización y delimitación de las partículas sea la prioridad absoluta sobre la exactitud numérica.Por otra parte, el desempeño de Segformer resulta sumamente revelador. Aun siendo un modelo implementado desde cero, lo que representa una desventaja competitiva frente a arquitecturas con años de optimización previa, ha demostrado ser el modelo óptimo para el análisis estadístico y de cantidad. Su capacidad para mantener el error de conteo más bajo de la comparativa lo posiciona como una arquitectura prometedora para el control de calidad granulométrico. 
-
-Finalmente, es importante destacar que los resultados obtenidos constituyen una base sólida que podría escalar significativamente. La disponibilidad de un dataset más extenso y específico del entorno real, junto con un volumen mayor de imágenes etiquetadas manualmente, permitiría un fine-tuning más profundo de estas arquitecturas. Con una inversión adicional de tiempo en el curado de datos y tiempo de desarrollo, es altamente probable que las brechas de error detectadas, especialmente la sobresegmentación en YOLO y el bajo IoU en Segformer, se reduzcan drásticamente, alcanzando niveles de precisión industriales.
+\begin{itemize}
+	\item \textbf{Capacidad de Generalización:} Los modelos demostraron una transferencia de aprendizaje efectiva. A pesar de la diferencia de dominio entre los datasets de entrenamiento y el entregado, las arquitecturas basadas en \textit{Transformers} identificaron correctamente el material pétreo.
+	\item \textbf{Compromiso Precisión-Velocidad:} Si la prioridad es la delimitación exacta del borde, SAM2 es la opción superior. No obstante, para aplicaciones industriales en tiempo real, YOLO ofrece el equilibrio más robusto.
+	\item \textbf{Perspectivas de Mejora:} Se estima que los resultados podrían optimizarse drásticamente mediante el etiquetado manual del dataset entregado utilizando herramientas como \textit{LabelMe}. Un proceso de \textit{fine-tuning} proporcionaría el contexto ambiental necesario para que modelos como YOLO alcancen la precisión de SAM2 manteniendo su baja latencia.
+\end{itemize}

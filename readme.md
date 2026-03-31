@@ -37,7 +37,7 @@ docker run --gpus all \
 - Ejemplo:
 
 ```
-docker run --rm --gpus all -v C:\Users\ignac\Escritorio\Delyrium\lithos_analytics_challenge\weights:/app/weights -v C:\Users\ignac\Escritorio\Delyrium\lithos_analytics_challenge\Inference:/app/Inference -v C:\Users\ignac\Escritorio\Delyrium\lithos_analytics_challenge\images\full_dataset_processed\test\images:/data_input lithos_inference
+docker run --rm --gpus all -v C:\Users\ignac\Escritorio\Delyrium\lithos_analytics_challenge\weights:/app/weights -v C:\Users\ignac\Escritorio\Delyrium\lithos_analytics_challenge\Inference:/app/Inference -v C:\Users\ignac\Escritorio\Delyrium\lithos_analytics_challenge\images\given_dataset\valid:/data_input lithos_inference
 ```
 
 
